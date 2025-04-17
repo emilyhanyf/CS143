@@ -80,6 +80,8 @@ INT_CONST     [0-9]+
 DIGIT         [0-9]
 LETTER        [a-zA-Z]
 NEWLINE       \n
+LE <=
+ASSIGN <-
 
 %%
 
@@ -110,18 +112,25 @@ NEWLINE       \n
 <INITIAL>{NEW}       { return (NEW); }
 <INITIAL>{NOT}       { return (NOT); }
 <INITIAL>{ISVOID}    { return (ISVOID); }
-<INITIAL>"="         { return int('='); }
-<INITIAL>"-"         { return int('-'); }
-<INITIAL>"+"         { return int('+'); }
-<INITIAL>":"         { return int(':'); }
-<INITIAL>";"         { return int(';'); }
-<INITIAL>"("         { return int('('); }
-<INITIAL>")"         { return int(')'); }
-<INITIAL>"{"         { return int('{'); }
-<INITIAL>"}"         { return int('}'); }
-<INITIAL>"."         { return int('.'); }
-<INITIAL>","         { return int(','); }
-<INITIAL>"<-"        { return (ASSIGN); }
+<INITIAL>{LE}       { return LE; }
+<INITIAL>{ASSIGN}        { return (ASSIGN); }
+<INITIAL>"="         { return '='; }
+<INITIAL>"-"         { return '-'; }
+<INITIAL>"+"         { return '+'; }
+<INITIAL>"<"         { return '<'; }
+<INITIAL>":"         { return ':'; }
+<INITIAL>";"         { return ';'; }
+<INITIAL>"("         { return '('; }
+<INITIAL>")"         { return ')'; }
+<INITIAL>"{"         { return '{'; }
+<INITIAL>"}"         { return '}'; }
+<INITIAL>"."         { return '.'; }
+<INITIAL>","         { return ','; }
+<INITIAL>"*"        { return '*'; }
+<INITIAL>"@"        { return '@'; }
+<INITIAL>"/"        { return '/'; }
+<INITIAL>"~"        { return '~'; }
+
 
  /*
   * Keywords are case-insensitive except for the values true and false,
@@ -313,7 +322,7 @@ NEWLINE       \n
 }
 
   /* Error handling for invalid character (one that can’t begin any token) */
-<INITIAL>[^\n0-9a-zA-Z_(){}*!/%_] {
+<INITIAL>[^\n] {
   cool_yylval.error_msg = yytext;
 	return ERROR;
 }
