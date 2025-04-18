@@ -6,6 +6,22 @@ iF
 if 
 IF
 
+(* Different symbols *)
+@
+-
+*
+~
+_
+<=
+<-
+->
+<
+
+(* Test logic statement *)
+if (this) {
+    then this;
+}
+
 (* Different data types *)
 10
 
@@ -59,23 +75,20 @@ Hi"
 "a\
 b"
 
-(* Comments unmatched *)
-(* (* *) *)
-(* (* *) *)
-(* *)
+(* Comments *)
+(* (* (* *) *) *)
+(* (* *)
+ *)
 (* Hello *)
 (*\n*)
+*)
 
 (* Dashed comments *)
 --Hello--
 Hello World
-
 --Hi
 Hello--
-
 --
 Hello
 --
-
 -- Hi    --
-(* (* ) *)
