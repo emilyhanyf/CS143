@@ -154,14 +154,14 @@ ASSIGN <-
 <COMMENT>\n {
   curr_lineno += 1;
 }
-<COMMENT>[^\n] { } 
+<COMMENT>[^\n] { }
 <COMMENT><<EOF>> {
   yylval.error_msg = "EOF in comment";
   comment_nests = 0;
   BEGIN(INITIAL);
   return ERROR;
 }
-"*)" {
+<INITIAL>"*)" {
   yylval.error_msg = "Unmatched *)";
   comment_nests = 0;
   BEGIN(INITIAL);
