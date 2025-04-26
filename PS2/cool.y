@@ -133,6 +133,36 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <classes> class_list
 %type <class_> class
 %type <features> optional_feature_list
+%type <feature> feature
+%type <formals> formal_list
+%type <formal> formal
+%type <formals> optional_formal_list
+%type <expression> assign
+%type <expression> static_dispatch
+%type <expression> dispatch
+%type <expression> cond
+%type <expression> loop
+%type <expression> typcase
+%type <expression> block
+%type <expression> let
+%type <expression> plus
+%type <expression> sub
+%type <expression> mul
+%type <expression> divide
+%type <expression> neg
+%type <expression> lt
+%type <expression> eq
+%type <expression> leq
+%type <expression> comp
+%type <expression> int_const
+%type <expression> bool_const
+%type <expression> string_const
+%type <expression> new_
+%type <expression> isvoid
+%type <expression> no_expr
+%type <expression> object
+%type <expression> optional_Expressions
+%type <expression> single_Expressions
 
 /* Precedence declarations go here. */
 
@@ -159,7 +189,35 @@ class	: CLASS TYPEID '{' optional_feature_list '}' ';'
 
 /* Feature list may be empty, but no empty features in list. */
 optional_feature_list:		/* empty */
-{  $$ = nil_Features(); }
+{ $$ = nil_Features(); }
+| feature 
+{ $$ = single_Features(); }
+| optional_feature_list feature
+{ $$ = }
+
+feature: OBJECTID '(' optional_formal_list ')' ':' TYPEID optional_feature_list
+{ $$ = }
+
+optional_formal_list: 
+{ $$ = nil_Formals(); }
+
+formal_list
+: formal 
+{ $$ = single_Formals($1);
+  parse_results = $$; }
+| formal_list ',' formal 
+{ $$ = append_Formals($1,single_Formals($3));
+  parse_results = $$; }
+
+formal: OBJECTID ':' TYPEID 
+{ $$ = formal($1, $3); }
+
+assign: object ASSIGN object
+{ $$ = }
+
+object: OBJECTID
+{ $$ = object($1); 
+  parse_results = $$; }
 /* end of grammar */
 %%
 
