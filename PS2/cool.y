@@ -130,14 +130,24 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 
 /* Declare types for the grammar's non-terminals. */
 %type <program> program
+
 %type <classes> class_list
 %type <class_> class
+
 %type <features> optional_feature_list
+%type <features> feature_list
 %type <feature> feature
+
+%type <formals> optional_formal_list
 %type <formals> formal_list
 %type <formal> formal
-%type <formals> optional_formal_list
-%type <expression> assign
+
+%type <expressions> optional_expression_list
+%type <expressions> expression_list
+%type <expression> expression
+
+
+%type <expression> assignment
 %type <expression> static_dispatch
 %type <expression> dispatch
 %type <expression> cond
@@ -159,60 +169,137 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <expression> string_const
 %type <expression> new_
 %type <expression> isvoid
-%type <expression> no_expr
 %type <expression> object
-%type <expression> optional_Expressions
-%type <expression> single_Expressions
+
 
 /* Precedence declarations go here. */
 
 
 %%
 // Save the root of the abstract syntax tree in a global variable.
-program	: class_list	{ @$ = @1; ast_root = program($1); }
+program	: 
+  class_list	
+{ @$ = @1; ast_root = program($1); }
+;
 
-class_list
-: class			/* single class */
+class_list: 
+  class			/* single class */
 { $$ = single_Classes($1);
   parse_results = $$; }
 | class_list class	/* several classes */
 { $$ = append_Classes($1,single_Classes($2));
   parse_results = $$; }
+;
 
 /* If no parent is specified, the class inherits from the Object class. */
-class	: CLASS TYPEID '{' optional_feature_list '}' ';'
+class	: 
+  CLASS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,idtable.add_string("Object"),$4,
 	      stringtable.add_string(curr_filename)); }
 | CLASS TYPEID INHERITS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
 ;
 
-/* Feature list may be empty, but no empty features in list. */
-optional_feature_list:		/* empty */
-{ $$ = nil_Features(); }
-| feature 
-{ $$ = single_Features(); }
-| optional_feature_list feature
-{ $$ = }
 
-feature: OBJECTID '(' optional_formal_list ')' ':' TYPEID optional_feature_list
-{ $$ = }
+/* FEATURES */
+/* SINGLE FEATURE */
+feature: 
+  OBJECTID '(' optional_formal_list ')' ':' TYPEID expression
+{ $$ = method($1, $3, $6, $7);
+  parse_results = $$; }
+| OBJECTID ':' TYPEID 
+{ $$ = attr($1, $3, no_expr());
+  parse_results = $$; }
+| OBJECTID ':' TYPEID ASSIGN expression
+{ $$ = attr($1, $3, $5);
+  parse_results = $$; }
+;
 
-optional_formal_list: 
-{ $$ = nil_Formals(); }
+  /* FEATURE LIST */
+feature_list:
+  feature 
+{ $$ = single_Features($1); 
+  parse_results = $$; }
+| feature_list ',' feature 
+{ $$ = append_Features($1, single_Features());
+  parse_results = $$; }
+;
 
-formal_list
-: formal 
+/* MAKE IT OPTIONAL */
+optional_feature_list:
+{ $$ = nil_Features(); 
+  parse_results = $$; }
+| feature_list
+{ $$ = $1;
+  parse_results = $$; }
+;
+
+
+
+/* FORMALS */
+/* single formal */
+formal: 
+  OBJECTID ':' TYPEID 
+{ $$ = formal($1, $3); 
+  parse_results = $$; }
+;
+
+/* formal list */
+formal_list: 
+  formal 
 { $$ = single_Formals($1);
   parse_results = $$; }
 | formal_list ',' formal 
 { $$ = append_Formals($1,single_Formals($3));
   parse_results = $$; }
+;
 
-formal: OBJECTID ':' TYPEID 
-{ $$ = formal($1, $3); }
+/* make it optional */
+optional_formal_list: 
+{ $$ = nil_Formals(); 
+  parse_results = $$; }
+| formal_list
+{ $$ = $1; 
+  parse_results = $$; }
+;
 
-assign: object ASSIGN object
+
+
+/* EXPRESSIONS */
+/* single expression */
+expression: 
+/* huge list of things it could be, put big OR statement with all possible expressions
+Probably break those other ones into other grammars just for readability sake tho */
+;
+
+/* expression list */
+expression_list:
+  expression
+{ $$ = single_Expressions($1);
+  parse_results = $$; }
+| expression_list ',' expression
+{ $$ = append_Expressions($1, single_Expressions($3)); 
+  parse_results = $$; }
+;
+
+/* make it optional */
+optional_expression_list:
+{ $$ = nil_Expressions(); 
+  parse_results = $$; }
+| expression_list
+{ $$ = $1;
+  parse_results = $$; }
+;
+
+
+
+
+
+
+
+
+
+assignment: object ASSIGN object
 { $$ = }
 
 object: OBJECTID
