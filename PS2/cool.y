@@ -135,17 +135,17 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <class_> class
 
 %type <features> optional_feature_list
-%type <features> feature_list
 %type <feature> feature
 
 %type <formals> optional_formal_list
-%type <formals> formal_list
 %type <formal> formal
 
-%type <expressions> optional_expression_list
-%type <expressions> expression_list
+%type <expressions> optional_expression_list_comma
+%type <expressions> expression_list_semicolon /* Not optional */
 %type <expression> expression
 
+%type <cases> case_list
+%type <case_> branch
 
 %type <expression> assignment
 %type <expression> static_dispatch
@@ -204,107 +204,124 @@ class	:
 /* FEATURES */
 /* SINGLE FEATURE */
 feature: 
-  OBJECTID '(' optional_formal_list ')' ':' TYPEID expression
-{ $$ = method($1, $3, $6, $7);
-  parse_results = $$; }
-| OBJECTID ':' TYPEID 
-{ $$ = attr($1, $3, no_expr());
-  parse_results = $$; }
-| OBJECTID ':' TYPEID ASSIGN expression
-{ $$ = attr($1, $3, $5);
-  parse_results = $$; }
+  OBJECTID '(' optional_formal_list ')' ':' TYPEID '{' expression '}' ';'
+{ $$ = method($1,$3,$6,$8); }
+| OBJECTID ':' TYPEID ';'
+{ $$ = attr($1,$3,no_expr()); }
+| OBJECTID ':' TYPEID ASSIGN expression ';'
+{ $$ = attr($1,$3,$5); }
 ;
 
-  /* FEATURE LIST */
-feature_list:
-  feature 
-{ $$ = single_Features($1); 
-  parse_results = $$; }
-| feature_list ',' feature 
-{ $$ = append_Features($1, single_Features());
-  parse_results = $$; }
-;
-
-/* MAKE IT OPTIONAL */
+/* FEATURE LIST */
+/* 0, 1, or more */
 optional_feature_list:
-{ $$ = nil_Features(); 
-  parse_results = $$; }
-| feature_list
-{ $$ = $1;
-  parse_results = $$; }
+{ $$ = nil_Features(); }
+| optional_feature_list feature 
+{ $$ = append_Features($1,single_Features($2)); }
 ;
-
-
 
 /* FORMALS */
 /* single formal */
 formal: 
   OBJECTID ':' TYPEID 
-{ $$ = formal($1, $3); 
+{ $$ = formal($1,$3); 
   parse_results = $$; }
 ;
 
 /* formal list */
-formal_list: 
-  formal 
-{ $$ = single_Formals($1);
-  parse_results = $$; }
-| formal_list ',' formal 
-{ $$ = append_Formals($1,single_Formals($3));
-  parse_results = $$; }
-;
-
-/* make it optional */
+/* 0, 1, or more */
 optional_formal_list: 
-{ $$ = nil_Formals(); 
-  parse_results = $$; }
-| formal_list
-{ $$ = $1; 
-  parse_results = $$; }
+{ $$ = nil_Formals(); }
+|  formal
+{ $$ = single_Formals($1); }
+|  optional_formal_list ',' formal 
+{ $$ = append_Formals($1,single_Formals($3)); }
 ;
-
 
 
 /* EXPRESSIONS */
 /* single expression */
-expression: 
-/* huge list of things it could be, put big OR statement with all possible expressions
-Probably break those other ones into other grammars just for readability sake tho */
+expression: OBJECTID ASSIGN expression 
+{ $$ = assign($1,$3); }
+| expression '@' TYPEID '.' OBJECTID '(' optional_expression_list_comma ')'
+{ $$ = static_dispatch($1,$3,$5,$7); }
+| expression '.' OBJECTID '(' optional_expression_list_comma ')'
+{ $$ = dispatch($1,$3,$5); }
+| OBJECTID '(' optional_expression_list_comma ')'
+{ $$ = dispatch(object(idtable.add_string("self")),$1,$3); }
+| IF expression THEN expression ELSE expression FI
+{ $$ = cond($2,$4,$6); }
+| WHILE expression LOOP expression POOL
+{ $$ = loop($2,$4); }
+| '{' expression_list_semicolon '}'
+{ $$ = block($2); }
+| LET /* TODO: Finish this */
+| CASE expression OF case_list ESAC
+{ $$ = typcase($2,$4); } 
+| NEW TYPEID
+{ $$ = new_($2); }
+| ISVOID expression
+{ $$ = isvoid($2); }
+| expression '+' expression
+{ $$ = plus($1,$3); }
+| expression '-' expression
+{ $$ = sub($1,$3); }
+| expression '*' expression
+{ $$ = mul($1,$3); }
+| expression '/' expression
+{ $$ = divide($1,$3); }
+| '~' expression
+{ $$ = neg($1); }
+| expression '<' expression
+{ $$ = lt($1,$3); }
+| expression LE expression
+{ $$ = leq($1,$3); }
+| expression '=' expression
+{ $$ = eq($1,$3); }
+| NOT expression
+{ $$ = comp($1); }
+| '(' expression ')'
+{ $$ = $2; }
+| OBJECTID
+{ $$ = object($1); }
+| INT_CONST
+{ $$ = int_const($1); }
+| STR_CONST
+{ $$ = string_const($1); }
+/* TODO: what to do for TRUE and FALSE? */
 ;
 
-/* expression list */
-expression_list:
-  expression
-{ $$ = single_Expressions($1);
-  parse_results = $$; }
-| expression_list ',' expression
-{ $$ = append_Expressions($1, single_Expressions($3)); 
-  parse_results = $$; }
+
+/* optional expression list with comma */
+optional_expression_list_comma:
+{ $$ = nil_Expressions(); }
+| expression
+{ $$ = single_Expressions($1); }
+| optional_expression_list_comma ',' expression
+{ $$ = append_Expressions($1, single_Expressions($3)); }
 ;
 
-/* make it optional */
-optional_expression_list:
-{ $$ = nil_Expressions(); 
-  parse_results = $$; }
-| expression_list
-{ $$ = $1;
-  parse_results = $$; }
+/* 1 or more expression list with semicolon */
+expression_list_semicolon:
+ expression ';'
+{ $$ = single_Expressions($1); }
+| expression_list_semicolon expression ';'
+{ $$ = append_Expressions($1, single_Expressions($3)); }
 ;
 
 
+/* 1 or more case list */
+case_list: branch
+{ $$ = single_Cases($1); }
+| case_list branch
+{ $$ = append_Cases($1,single_Cases($2)); }
+
+/* branch for case */
+branch: OBJECTID ':' TYPEID DARROW expression ';'
+{ $$ = branch($1,$3,$5); }
 
 
 
-
-
-
-
-assignment: object ASSIGN object
-{ $$ = }
-
-object: OBJECTID
-{ $$ = object($1); 
-  parse_results = $$; }
 /* end of grammar */
 %%
 
