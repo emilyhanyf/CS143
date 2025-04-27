@@ -136,13 +136,16 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 
 %type <features> optional_feature_list
 %type <feature> feature
+%type <features> feature_list
 
 %type <formals> optional_formal_list
 %type <formal> formal
+%type <formals> formal_list
 
 %type <expressions> optional_expression_list_comma
 %type <expressions> expression_list_block /* Not optional */
 %type <expression> expression
+%type <expression> empty_expression
 
 %type <cases> case_list
 %type <case_> branch
@@ -188,12 +191,19 @@ feature:
 { $$ = attr($1,$3,$5); }
 ;
 
-/* FEATURE LIST */
-/* 0, 1, or more */
+/* 1, or more */
+feature_list:
+  feature 
+{ $$ = single_Features($1); }
+| feature_list feature 
+{ $$ = append_Features($1,single_Features($2)); }
+;
+
+/* Make it optional */
 optional_feature_list:
 { $$ = nil_Features(); }
-| optional_feature_list feature 
-{ $$ = append_Features($1,single_Features($2)); }
+| feature_list
+{ $$ = $1; }
 ;
 
 /* FORMALS */
@@ -203,18 +213,26 @@ formal:
 { $$ = formal($1,$3); }
 ;
 
-/* formal list */
-/* 0, 1, or more */
+/* 1 or more */
+formal_list: 
+  formal 
+{ $$ = single_Formals($1); }
+| formal_list ',' formal 
+{ $$ = append_Formals($1,single_Formals($3)); }
+;
+
+/* Make it optional */
 optional_formal_list: 
 { $$ = nil_Formals(); }
-|  formal
-{ $$ = single_Formals($1); }
-|  optional_formal_list ',' formal 
-{ $$ = append_Formals($1,single_Formals($3)); }
+|  formal_list
+{ $$ = $1; }
 ;
 
 
 /* EXPRESSIONS */
+empty_expression: 
+{ $$ = no_expr(); }
+
 /* single expression */
 expression: OBJECTID ASSIGN expression 
 { $$ = assign($1,$3); }
