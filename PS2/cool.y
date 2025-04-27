@@ -145,14 +145,23 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <expressions> optional_expression_list_comma
 %type <expressions> expression_list_block /* Not optional */
 %type <expression> expression
-%type <expression> empty_expression
+/* %type <expression> empty_expression */
 
 %type <cases> case_list
 %type <case_> branch
 
+%type <expression> lets
 
 /* Precedence declarations go here. */
-
+%right ASSIGN
+%left NOT
+%nonassoc LE '<' '='
+%left '+' '-'
+%left '*' '/'
+%left ISVOID
+%left '~'
+%left '@'
+%left '.'
 
 %%
 // Save the root of the abstract syntax tree in a global variable.
@@ -224,14 +233,14 @@ formal_list:
 /* Make it optional */
 optional_formal_list: 
 { $$ = nil_Formals(); }
-|  formal_list
+| formal_list
 { $$ = $1; }
 ;
 
 
 /* EXPRESSIONS */
-empty_expression: 
-{ $$ = no_expr(); }
+/* empty_expression: 
+{ $$ = no_expr(); } */
 
 /* single expression */
 expression: OBJECTID ASSIGN expression 
@@ -248,7 +257,8 @@ expression: OBJECTID ASSIGN expression
 { $$ = loop($2,$4); }
 | '{' expression_list_block '}'
 { $$ = block($2); }
-| LET /* TODO: Finish this */
+| LET lets
+{ $$ = $2; }
 | CASE expression OF case_list ESAC
 { $$ = typcase($2,$4); } 
 | NEW TYPEID
@@ -264,7 +274,7 @@ expression: OBJECTID ASSIGN expression
 | expression '/' expression
 { $$ = divide($1,$3); }
 | '~' expression
-{ $$ = neg($1); }
+{ $$ = neg($2); }
 | expression '<' expression
 { $$ = lt($1,$3); }
 | expression LE expression
@@ -272,7 +282,7 @@ expression: OBJECTID ASSIGN expression
 | expression '=' expression
 { $$ = eq($1,$3); }
 | NOT expression
-{ $$ = comp($1); }
+{ $$ = comp($2); }
 | '(' expression ')'
 { $$ = $2; }
 | OBJECTID
@@ -300,7 +310,7 @@ expression_list_block:
  expression ';'
 { $$ = single_Expressions($1); }
 | expression_list_block expression ';'
-{ $$ = append_Expressions($1, single_Expressions($3)); }
+{ $$ = append_Expressions($1, single_Expressions($2)); }
 ;
 
 
@@ -314,7 +324,15 @@ case_list: branch
 branch: OBJECTID ':' TYPEID DARROW expression ';'
 { $$ = branch($1,$3,$5); }
 
-
+/* Multiple lets */
+lets: OBJECTID ':' TYPEID ASSIGN expression ',' lets
+{ $$ = let($1,$3,$5,$7); }
+| OBJECTID ':' TYPEID ',' lets
+{ $$ = let($1,$3,no_expr(),$5); }
+| OBJECTID ':' TYPEID ASSIGN expression IN expression
+{ $$ = let($1,$3,$5,$7); }
+| OBJECTID ':' TYPEID IN expression
+{ $$ = let($1,$3,no_expr(),$5); }
 
 /* end of grammar */
 %%
