@@ -141,35 +141,11 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <formal> formal
 
 %type <expressions> optional_expression_list_comma
-%type <expressions> expression_list_semicolon /* Not optional */
+%type <expressions> expression_list_block /* Not optional */
 %type <expression> expression
 
 %type <cases> case_list
 %type <case_> branch
-
-%type <expression> assignment
-%type <expression> static_dispatch
-%type <expression> dispatch
-%type <expression> cond
-%type <expression> loop
-%type <expression> typcase
-%type <expression> block
-%type <expression> let
-%type <expression> plus
-%type <expression> sub
-%type <expression> mul
-%type <expression> divide
-%type <expression> neg
-%type <expression> lt
-%type <expression> eq
-%type <expression> leq
-%type <expression> comp
-%type <expression> int_const
-%type <expression> bool_const
-%type <expression> string_const
-%type <expression> new_
-%type <expression> isvoid
-%type <expression> object
 
 
 /* Precedence declarations go here. */
@@ -224,8 +200,7 @@ optional_feature_list:
 /* single formal */
 formal: 
   OBJECTID ':' TYPEID 
-{ $$ = formal($1,$3); 
-  parse_results = $$; }
+{ $$ = formal($1,$3); }
 ;
 
 /* formal list */
@@ -253,7 +228,7 @@ expression: OBJECTID ASSIGN expression
 { $$ = cond($2,$4,$6); }
 | WHILE expression LOOP expression POOL
 { $$ = loop($2,$4); }
-| '{' expression_list_semicolon '}'
+| '{' expression_list_block '}'
 { $$ = block($2); }
 | LET /* TODO: Finish this */
 | CASE expression OF case_list ESAC
@@ -288,7 +263,8 @@ expression: OBJECTID ASSIGN expression
 { $$ = int_const($1); }
 | STR_CONST
 { $$ = string_const($1); }
-/* TODO: what to do for TRUE and FALSE? */
+| BOOL_CONST
+{ $$ = bool_const($1); }
 ;
 
 
@@ -302,10 +278,10 @@ optional_expression_list_comma:
 ;
 
 /* 1 or more expression list with semicolon */
-expression_list_semicolon:
+expression_list_block:
  expression ';'
 { $$ = single_Expressions($1); }
-| expression_list_semicolon expression ';'
+| expression_list_block expression ';'
 { $$ = append_Expressions($1, single_Expressions($3)); }
 ;
 
