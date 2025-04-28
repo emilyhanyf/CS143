@@ -154,6 +154,7 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <expression> lets
 
 /* Precedence declarations go here. */
+%right IN
 %right ASSIGN
 %left NOT
 %nonassoc LE '<' '='
@@ -169,6 +170,7 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 program	: 
   class_list	
 { @$ = @1; ast_root = program($1); }
+| error {}
 ;
 
 class_list: 
@@ -178,6 +180,7 @@ class_list:
 | class_list class	/* several classes */
 { $$ = append_Classes($1,single_Classes($2));
   parse_results = $$; }
+| error ';' {}
 ;
 
 /* If no parent is specified, the class inherits from the Object class. */
@@ -231,6 +234,7 @@ formal_list:
 { $$ = single_Formals($1); SET_NODELOC(@1); }
 | formal_list ',' formal 
 { $$ = append_Formals($1,single_Formals($3)); SET_NODELOC(@3); }
+| error ',' {}
 ;
 
 /* Make it optional */
@@ -296,7 +300,6 @@ expression: OBJECTID ASSIGN expression
 { $$ = string_const($1); SET_NODELOC(@1); }
 | BOOL_CONST
 { $$ = bool_const($1); SET_NODELOC(@1); }
-| error ';' { yyerror("Error"); }
 ;
 
 
@@ -315,6 +318,7 @@ expression_list_block:
 { $$ = single_Expressions($1); SET_NODELOC(@1); }
 | expression_list_block expression ';'
 { $$ = append_Expressions($1, single_Expressions($2)); SET_NODELOC(@2); }
+| error ';' {}
 ;
 
 
@@ -328,6 +332,7 @@ case_list: branch
 /* branch for case */
 branch: OBJECTID ':' TYPEID DARROW expression ';'
 { $$ = branch($1,$3,$5); SET_NODELOC(@5); }
+| error ';' {}
 ;
 
 /* Multiple lets */

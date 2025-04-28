@@ -24,13 +24,11 @@ Class D inherts A {
 };
 
 (* error:  closing brace is missing *)
-(* TODO: fix EOF error
 Class E inherits A {
 ;
-*)
 
 (* Class List *)
-Class A1 {}
+Class A1 {
 Class A2 {};
 Class A3 {}
 
