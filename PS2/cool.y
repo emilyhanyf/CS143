@@ -154,7 +154,7 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <expression> lets
 
 /* Precedence declarations go here. */
-%right IN
+%nonassoc IN
 %right ASSIGN
 %left NOT
 %nonassoc LE '<' '='
@@ -170,7 +170,6 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 program	: 
   class_list	
 { @$ = @1; ast_root = program($1); }
-| error {}
 ;
 
 class_list: 
@@ -180,7 +179,6 @@ class_list:
 | class_list class	/* several classes */
 { $$ = append_Classes($1,single_Classes($2));
   parse_results = $$; }
-| error ';' {}
 ;
 
 /* If no parent is specified, the class inherits from the Object class. */
@@ -190,7 +188,7 @@ class	:
 	      stringtable.add_string(curr_filename)); }
 | CLASS TYPEID INHERITS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
-| error ';' {}
+| error ';' { yyerrok; }
 ;
 
 
@@ -203,7 +201,7 @@ feature:
 { $$ = attr($1,$3,no_expr()); SET_NODELOC(@3); }
 | OBJECTID ':' TYPEID ASSIGN expression ';'
 { $$ = attr($1,$3,$5); SET_NODELOC(@5); }
-| error ';' {}
+| error ';' { yyerrok; }
 ;
 
 /* 1, or more */
@@ -234,7 +232,6 @@ formal_list:
 { $$ = single_Formals($1); SET_NODELOC(@1); }
 | formal_list ',' formal 
 { $$ = append_Formals($1,single_Formals($3)); SET_NODELOC(@3); }
-| error ',' {}
 ;
 
 /* Make it optional */
@@ -318,7 +315,7 @@ expression_list_block:
 { $$ = single_Expressions($1); SET_NODELOC(@1); }
 | expression_list_block expression ';'
 { $$ = append_Expressions($1, single_Expressions($2)); SET_NODELOC(@2); }
-| error ';' {}
+| error ';' { yyerrok; }
 ;
 
 
@@ -332,7 +329,6 @@ case_list: branch
 /* branch for case */
 branch: OBJECTID ':' TYPEID DARROW expression ';'
 { $$ = branch($1,$3,$5); SET_NODELOC(@5); }
-| error ';' {}
 ;
 
 /* Multiple lets */
@@ -344,6 +340,7 @@ lets: OBJECTID ':' TYPEID ASSIGN expression ',' lets
 { $$ = let($1,$3,$5,$7); SET_NODELOC(@7); }
 | OBJECTID ':' TYPEID IN expression
 { $$ = let($1,$3,no_expr(),$5); SET_NODELOC(@5); }
+| error ',' lets { yyerrok; }
 ;
 
 /* end of grammar */
