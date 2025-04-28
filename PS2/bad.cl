@@ -24,6 +24,21 @@ Class D inherts A {
 };
 
 (* error:  closing brace is missing *)
+(* TODO: fix EOF error
 Class E inherits A {
 ;
+*)
 
+(* Class List *)
+Class A1 {}
+Class A2 {};
+Class A3 {}
+
+(* Feature error *)
+Class F inherits A {
+    a: String
+    b: Int < 5;
+    calculate(): Int {
+        b
+    }
+};

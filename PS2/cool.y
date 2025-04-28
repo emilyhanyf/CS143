@@ -161,8 +161,8 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %left '*' '/'
 %left ISVOID
 %left '~'
-%left '@'
-%left '.'
+%nonassoc '@'
+%nonassoc '.'
 
 %%
 // Save the root of the abstract syntax tree in a global variable.
@@ -187,6 +187,7 @@ class	:
 	      stringtable.add_string(curr_filename)); }
 | CLASS TYPEID INHERITS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
+| error ';' {}
 ;
 
 
@@ -199,6 +200,7 @@ feature:
 { $$ = attr($1,$3,no_expr()); SET_NODELOC(@3); }
 | OBJECTID ':' TYPEID ASSIGN expression ';'
 { $$ = attr($1,$3,$5); SET_NODELOC(@5); }
+| error ';' {}
 ;
 
 /* 1, or more */
@@ -294,6 +296,7 @@ expression: OBJECTID ASSIGN expression
 { $$ = string_const($1); SET_NODELOC(@1); }
 | BOOL_CONST
 { $$ = bool_const($1); SET_NODELOC(@1); }
+| error ';' { yyerror("Error"); }
 ;
 
 
