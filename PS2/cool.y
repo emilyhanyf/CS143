@@ -130,18 +130,14 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 
 /* Declare types for the grammar's non-terminals. */
 %type <program> program
-
 %type <classes> class_list
 %type <class_> class
-
 %type <feature> feature
 %type <features> feature_list
 %type <features> optional_feature_list
-
 %type <formal> formal
 %type <formals> formal_list
 %type <formals> optional_formal_list
-
 %type <expression> expression
 %type <expressions> optional_expression_list_comma
 %type <expressions> expression_list_block /* Not optional */
@@ -150,7 +146,6 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 
 %type <cases> case_list
 %type <case_> branch
-
 %type <expression> lets
 
 /* Precedence declarations go here. */
@@ -180,7 +175,7 @@ class_list:
 { $$ = append_Classes($1,single_Classes($2));
   parse_results = $$; }
 | error ';' { yyerrok; $$ = nil_Classes(); }
-| ERROR { yyerrok; $$ = nil_Classes(); }
+| class_list error ';' {yyerrok; $$ = $1;}
 ;
 
 /* If no parent is specified, the class inherits from the Object class. */
@@ -190,8 +185,6 @@ class	:
 	      stringtable.add_string(curr_filename)); }
 | CLASS TYPEID INHERITS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
-/* | error ';' { yyerrok; }
-| ERROR { yyerrok; } */
 ;
 
 
@@ -204,8 +197,6 @@ feature:
 { $$ = attr($1,$3,no_expr()); SET_NODELOC(@3); }
 | OBJECTID ':' TYPEID ASSIGN expression ';'
 { $$ = attr($1,$3,$5); SET_NODELOC(@5); }
-/* | error ';' { yyerrok; }
-| ERROR { yyerrok; } */
 ;
 
 /* 1, or more */
@@ -214,8 +205,8 @@ feature_list:
 { $$ = single_Features($1); SET_NODELOC(@1); }
 | feature_list feature 
 { $$ = append_Features($1,single_Features($2)); SET_NODELOC(@2); }
-| error ';' { yyerrok; nil_Features(); }
-| ERROR { yyerrok; nil_Features(); }
+| error ';' { yyerrok; $$ = nil_Features(); }
+| feature_list error ';' { yyerrok; $$ = $1; }
 ;
 
 /* Make it optional */
@@ -321,8 +312,8 @@ expression_list_block:
 { $$ = single_Expressions($1); SET_NODELOC(@1); }
 | expression_list_block expression ';'
 { $$ = append_Expressions($1, single_Expressions($2)); SET_NODELOC(@2); }
-| error ';' { yyerrok; nil_Expressions(); }
-| ERROR { yyerrok; nil_Expressions(); }
+| error ';' { yyerrok; $$ = nil_Expressions(); }
+| expression_list_block error ';' { yyerrok; $$ = $1; }
 ;
 
 
@@ -347,8 +338,8 @@ lets: OBJECTID ':' TYPEID ASSIGN expression ',' lets
 { $$ = let($1,$3,$5,$7); SET_NODELOC(@7); }
 | OBJECTID ':' TYPEID IN expression
 { $$ = let($1,$3,no_expr(),$5); SET_NODELOC(@5); }
-| error ',' lets { yyerrok; nil_Expressions(); }
-| ERROR { yyerrok; nil_Expressions(); }
+| error IN expression { yyerrok; $$ = no_expr(); }
+| error ',' lets { yyerrok; $$ = $3; }
 ;
 
 
