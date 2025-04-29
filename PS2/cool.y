@@ -179,6 +179,8 @@ class_list:
 | class_list class	/* several classes */
 { $$ = append_Classes($1,single_Classes($2));
   parse_results = $$; }
+| error ';' { yyerrok; $$ = nil_Classes(); }
+| ERROR { yyerrok; $$ = nil_Classes(); }
 ;
 
 /* If no parent is specified, the class inherits from the Object class. */
@@ -188,7 +190,8 @@ class	:
 	      stringtable.add_string(curr_filename)); }
 | CLASS TYPEID INHERITS TYPEID '{' optional_feature_list '}' ';'
 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
-| error ';' { yyerrok; }
+/* | error ';' { yyerrok; }
+| ERROR { yyerrok; } */
 ;
 
 
@@ -201,7 +204,8 @@ feature:
 { $$ = attr($1,$3,no_expr()); SET_NODELOC(@3); }
 | OBJECTID ':' TYPEID ASSIGN expression ';'
 { $$ = attr($1,$3,$5); SET_NODELOC(@5); }
-| error ';' { yyerrok; }
+/* | error ';' { yyerrok; }
+| ERROR { yyerrok; } */
 ;
 
 /* 1, or more */
@@ -210,6 +214,8 @@ feature_list:
 { $$ = single_Features($1); SET_NODELOC(@1); }
 | feature_list feature 
 { $$ = append_Features($1,single_Features($2)); SET_NODELOC(@2); }
+| error ';' { yyerrok; nil_Features(); }
+| ERROR { yyerrok; nil_Features(); }
 ;
 
 /* Make it optional */
@@ -315,7 +321,8 @@ expression_list_block:
 { $$ = single_Expressions($1); SET_NODELOC(@1); }
 | expression_list_block expression ';'
 { $$ = append_Expressions($1, single_Expressions($2)); SET_NODELOC(@2); }
-| error ';' { yyerrok; }
+| error ';' { yyerrok; nil_Expressions(); }
+| ERROR { yyerrok; nil_Expressions(); }
 ;
 
 
@@ -340,8 +347,11 @@ lets: OBJECTID ':' TYPEID ASSIGN expression ',' lets
 { $$ = let($1,$3,$5,$7); SET_NODELOC(@7); }
 | OBJECTID ':' TYPEID IN expression
 { $$ = let($1,$3,no_expr(),$5); SET_NODELOC(@5); }
-| error ',' lets { yyerrok; }
+| error ',' lets { yyerrok; nil_Expressions(); }
+| ERROR { yyerrok; nil_Expressions(); }
 ;
+
+
 
 /* end of grammar */
 %%
