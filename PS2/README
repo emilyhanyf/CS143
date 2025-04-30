@@ -1,4 +1,4 @@
 user: rykerv
 user: emilyhyf
 
-This is a parser. It works so well it will blow your socks off. Prepare to be amazed by our greatness.
+This is a parser for the COOL language. It operates with specificiations from the COOL reference manual. It impliments CFGs to match tokens incoming from the lexer. It has no shift/reduce or reduce/reduce errors.
