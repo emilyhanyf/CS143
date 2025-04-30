@@ -141,6 +141,7 @@ int omerrs = 0;               /* number of erros in lexing and parsing */
 %type <expression> expression
 %type <expressions> optional_expression_list_comma
 %type <expressions> expression_list_block /* Not optional */
+%type <expressions> expression_list_comma
 
 /* %type <expression> empty_expression */
 
@@ -298,12 +299,17 @@ expression: OBJECTID ASSIGN expression
 
 
 /* optional expression list with comma */
+expression_list_comma:
+  expression
+{ $$ = single_Expressions($1); SET_NODELOC(@1); }
+| expression_list_comma ',' expression
+{ $$ = append_Expressions($1, single_Expressions($3)); SET_NODELOC(@3); }
+;
+
 optional_expression_list_comma:
 { $$ = nil_Expressions(); }
-| expression
-{ $$ = single_Expressions($1); SET_NODELOC(@1); }
-| optional_expression_list_comma ',' expression
-{ $$ = append_Expressions($1, single_Expressions($3)); SET_NODELOC(@3); }
+| expression_list_comma 
+{ $$ = $1; SET_NODELOC(@1); }
 ;
 
 /* 1 or more expression list with semicolon */
