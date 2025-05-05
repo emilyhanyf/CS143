@@ -177,11 +177,31 @@ ASSIGN <-
   */
 
   /* Consumer the rest of the erroneous string */
-  /* Any character besides " and \n with optionally a closing quote */
-<ERROR_STR>[^\"]*\"? {
+
+<ERROR_STR><<EOF>> {
   BEGIN(INITIAL);
   return ERROR;
 }
+
+<ERROR_STR>\" {
+    BEGIN(INITIAL);
+    return ERROR;
+}
+
+<ERROR_STR>\n {
+  curr_lineno++;
+  BEGIN(INITIAL);
+  return ERROR;
+}
+
+<ERROR_STR>[^\\"\n]+ { }
+
+  /* Must add line number here */
+<ERROR_STR>\\\n {
+  curr_lineno++;
+}
+
+<ERROR_STR>\\. { } 
 
   /* Special cases \b \t \n \f */
 <STRING>\\n {
