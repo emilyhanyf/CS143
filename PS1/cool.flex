@@ -178,7 +178,7 @@ ASSIGN <-
 
   /* Consumer the rest of the erroneous string */
   /* Any character besides " and \n with optionally a closing quote */
-<ERROR_STR>[^\"\n]*\"? {
+<ERROR_STR>[^\"]*\"? {
   BEGIN(INITIAL);
   return ERROR;
 }
