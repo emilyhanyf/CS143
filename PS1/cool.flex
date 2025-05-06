@@ -180,77 +180,78 @@ ASSIGN <-
 
 <ERROR_STR><<EOF>> {
   BEGIN(INITIAL);
-  return ERROR;
 }
 
 <ERROR_STR>\" {
-    BEGIN(INITIAL);
-    return ERROR;
+  BEGIN(INITIAL);
 }
 
 <ERROR_STR>\n {
   curr_lineno++;
   BEGIN(INITIAL);
-  return ERROR;
 }
-
-<ERROR_STR>[^\\"\n]+ { }
 
   /* Must add line number here */
 <ERROR_STR>\\\n {
   curr_lineno++;
 }
 
-<ERROR_STR>\\. { } 
+<ERROR_STR>[^\\"\n]+ { }
 
   /* Special cases \b \t \n \f */
 <STRING>\\n {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\n';
 }
 <STRING>\\t {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\t';
 }
 <STRING>\\b {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\b';
 }
 <STRING>\\f {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\f';
 }
 <STRING>\\\" {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\"';
 }
 <STRING>\\\\ {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\\';
 }
 
   /* Invalid null character \0 */
 <STRING>\0 {
-  yylval.error_msg = "String contains null character";
-  BEGIN(INITIAL);
+  yylval.error_msg = "String contains null character.";
+  BEGIN(ERROR_STR);
   return ERROR;
 }
 
@@ -263,9 +264,10 @@ ASSIGN <-
 
   /* Escaped newline */
 <STRING>\\\n {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = '\n';
   curr_lineno += 1;
@@ -281,9 +283,10 @@ ASSIGN <-
 
   /* Add string to string table */  
 <STRING>\" {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length] = '\0'; 
   yylval.symbol = stringtable.add_string(string_buf);
@@ -293,18 +296,20 @@ ASSIGN <-
 
   /* Single character \c */
 <STRING>\\[^nbtf] {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = yytext[1];
 }
 
   /* All other single characters */
 <STRING>. {
-  if (string_length >= MAX_STR_CONST - 1) {
+  if (string_length >= MAX_STR_CONST) {
     yylval.error_msg = "String constant too long";
     BEGIN(ERROR_STR);
+    return ERROR;
   }
   string_buf[string_length++] = yytext[0];
 }
