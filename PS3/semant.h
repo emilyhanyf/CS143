@@ -10,7 +10,25 @@
 #define TRUE 1
 #define FALSE 0
 
-class InheritanceNode;
+class InheritanceNode {
+private: 
+  Class_ node;
+  Symbol name;
+  Symbol parent;
+
+public:
+  InheritanceNode(Class_ node) {
+    name = node->get_name();
+    parent = node->get_parent();
+  }
+
+  Symbol get_name() { return name; }
+  Symbol get_parent() { return parent; }
+};
+
+
+
+
 typedef InheritanceNode *InheritanceNodeP;
 class ClassTable;
 typedef ClassTable *ClassTableP;

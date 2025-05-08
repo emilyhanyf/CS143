@@ -86,23 +86,17 @@ static void initialize_constants(void) {
 }
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
-  SymbolTable<Symbol, Class_>* classMap = new SymbolTable<Symbol, Class_>();
-  ClassTable* inheritanceGraph = new ClassTable();
-  classMap->enterscope();
   install_basic_classes();
-  
+
   for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
 
-    // todo:
-    // populate inheritance graph with ClassTable
-    
-
-    if(classMap->lookup(current_name) != nullptr) {
+    if(lookup(current_name) != nullptr) {
       semant_error(current);
     } else {
-      classMap->addid(current_name, &current);
+      InheritanceNodeP append = new InheritanceNode(current);
+      addid(current_name, append);
     }
   }
 }
@@ -211,6 +205,19 @@ void ClassTable::install_basic_classes() {
 				   Str,
 				   no_expr()))),
 	     filename);
+
+       // add my code here to add to symboltable
+       // first we have to create inheritance nodes
+      InheritanceNodeP Object_inheritance = new InheritanceNode(Object_class);
+      addid(Object, Object_inheritance);
+      InheritanceNodeP IO_inheritance = new InheritanceNode(IO_class);
+      addid(IO, IO_inheritance);
+      InheritanceNodeP Int_inheritance = new InheritanceNode(Int_class);
+      addid(Int, Int_inheritance);
+      InheritanceNodeP Bool_inheritance = new InheritanceNode(Bool_class);
+      addid(Bool, Bool_inheritance);
+      InheritanceNodeP Str_inheritance = new InheritanceNode(Str_class);
+      addid(Str, Str_inheritance);
 }
 
 ////////////////////////////////////////////////////////////////////
