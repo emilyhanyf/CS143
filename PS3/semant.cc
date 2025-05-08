@@ -86,7 +86,25 @@ static void initialize_constants(void) {
 }
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
-  /* Fill this in */
+  SymbolTable<Symbol, Class_>* classMap = new SymbolTable<Symbol, Class_>();
+  ClassTable* inheritanceGraph = new ClassTable();
+  classMap->enterscope();
+  install_basic_classes();
+  
+  for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
+    Class_ current = classes->nth(i);
+    Symbol current_name = current->get_name();
+
+    // todo:
+    // populate inheritance graph with ClassTable
+    
+
+    if(classMap->lookup(current_name) != nullptr) {
+      semant_error(current);
+    } else {
+      classMap->addid(current_name, &current);
+    }
+  }
 }
 
 void ClassTable::install_basic_classes() {
