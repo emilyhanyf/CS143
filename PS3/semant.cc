@@ -134,7 +134,7 @@ void ClassTable::check_inheritance(Classes classes) {
       if (classes_seen.count(current_name) != 0) { 
         classes_problem.insert(classes_seen.begin(), classes_seen.end());
         broken = true; 
-        semant_error(current); 
+        semant_error(lookup(current_name)->get_node()); 
         break; 
       } 
 
@@ -142,7 +142,7 @@ void ClassTable::check_inheritance(Classes classes) {
      if (current_name == SELF_TYPE) {
       classes_problem.insert(classes_seen.begin(), classes_seen.end());
       broken = true; 
-      semant_error(current); 
+      semant_error(lookup(current_name)->get_node()); 
       break; 
     }
 
@@ -169,7 +169,7 @@ void ClassTable::check_inheritance(Classes classes) {
       if (current_inheritance == nullptr) {
         classes_problem.insert(classes_seen.begin(), classes_seen.end());
         broken = true; 
-        semant_error(current); 
+        semant_error(lookup(current_name)->get_node()); 
         break; 
       }
 
@@ -180,7 +180,7 @@ void ClassTable::check_inheritance(Classes classes) {
       if (current_name != Object and current_parent == No_class) {
         classes_problem.insert(classes_seen.begin(), classes_seen.end());
         broken = true; 
-        semant_error(current); 
+        semant_error(lookup(current_name)->get_node()); 
         break; 
       }
 

@@ -22,10 +22,13 @@ public:
   InheritanceNode(Class_ node) {
     name = node->get_name();
     parent = node->get_parent();
+    this->node = node;
   }
 
   Symbol get_name() { return name; }
   Symbol get_parent() { return parent; }
+  Class_ get_node() { return node; }
+
 };
 
 
