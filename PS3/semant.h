@@ -42,6 +42,8 @@ class ClassTable : public SymbolTable<Symbol, InheritanceNode> {
 private:
   int semant_errors;           // counts the number of semantic errors
   void install_basic_classes();
+  void install_new_classes(Classes classes);
+  void check_inheritance();
   std::ostream& error_stream;
 
 public:

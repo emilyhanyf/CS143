@@ -86,19 +86,36 @@ static void initialize_constants(void) {
 }
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
+  // install base classes
   install_basic_classes();
+  // install user-added new classes
+  install_new_classes(classes);
+  // check inheritance
+  check_inheritance();
+}
 
+void ClassTable::install_new_classes(Classes classes) {
   for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
 
     if(lookup(current_name) != nullptr) {
+      // throw error if node is alr in inheritance graph
       semant_error(current);
     } else {
       InheritanceNodeP append = new InheritanceNode(current);
       addid(current_name, append);
     }
   }
+}
+
+void ClassTable::check_inheritance() {
+  // run my inheritance checking through the map
+  // here is my premature plan:
+  // FOR EACH class in our symbol table:
+  // 1. traverse up its parents and keep track of the things weve seen
+  // 2. if we see something we have already seen then that means we have a loop somehow, throw an error
+  // 3. if we get all the way up to no_class, then we're good
 }
 
 void ClassTable::install_basic_classes() {
@@ -206,8 +223,7 @@ void ClassTable::install_basic_classes() {
 				   no_expr()))),
 	     filename);
 
-       // add my code here to add to symboltable
-       // first we have to create inheritance nodes
+       // Install basic classes into class table, add them with inhertianceNode so that we can traverse inheritance later
       InheritanceNodeP Object_inheritance = new InheritanceNode(Object_class);
       addid(Object, Object_inheritance);
       InheritanceNodeP IO_inheritance = new InheritanceNode(IO_class);
