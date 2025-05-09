@@ -98,7 +98,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
 }
 
 void ClassTable::install_new_classes(Classes classes) {
-  for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
+  for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
 
@@ -122,23 +122,33 @@ void ClassTable::check_inheritance(Classes classes) {
 
   // if we get to a class which we know terminates correctly in our tree, we can immediately terminate 
   std::set<Symbol> classes_confirmed;
-  std::set<Symbol> classes_looped;
+  std::set<Symbol> classes_problem;
+  bool broken = false;
   for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
-    bool broken = false;
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
     std::set<Symbol> classes_seen;
     while(true) {
       // check if node has been seen already, or if the current node is a known bad node
       // If this is not already a known , the program is broken and throw an error
-      if (classes_seen.count(current_name) != 0 ) { 
+      if (classes_seen.count(current_name) != 0) { 
+        classes_problem.insert(classes_seen.begin(), classes_seen.end());
         broken = true; 
         semant_error(current); 
         break; 
       } 
 
+     // if parent is SELF_TYPE, throw error and add nodes (including current) to problem nodes
+     if (current_name == SELF_TYPE) {
+      classes_problem.insert(classes_seen.begin(), classes_seen.end());
+      broken = true; 
+      semant_error(current); 
+      break; 
+    }
+
       // otherwise we do not want to throw another error or reset that it is broken, just break
-      if (classes_looped.count(current_name) != 0) {
+      if (classes_problem.count(current_name) != 0) {
+        classes_problem.insert(classes_seen.begin(), classes_seen.end());
         break;
       }
 
@@ -152,16 +162,36 @@ void ClassTable::check_inheritance(Classes classes) {
       // otherwise insert the current node into seen nodes
       classes_seen.insert(current_name);
       InheritanceNodeP current_inheritance = lookup(current_name);
+
+      // all errors below are below for a reason. They require the context of the current node and 
+
+      // undefined parent class
+      if (current_inheritance == nullptr) {
+        classes_problem.insert(classes_seen.begin(), classes_seen.end());
+        broken = true; 
+        semant_error(current); 
+        break; 
+      }
+
       // find the current node's parent
       Symbol current_parent = current_inheritance->get_parent();
+
+      // fix floating nodes with no valid parents
+      if (current_name != Object and current_parent == No_class) {
+        classes_problem.insert(classes_seen.begin(), classes_seen.end());
+        broken = true; 
+        semant_error(current); 
+        break; 
+      }
+
       // iterate over parent
       current_name = current_parent;
     }
-
-    // tree is not well-defined, we have a loop. Abort semantic analysis
-    // FIX THIS: is there an abort function or something like this? this will continue with semantic analysos but I dont want this to happen
-    if (broken) { /* ABORT THE PROGRAM AFTER FINDING ALL ERRORS */ }
   }
+
+  // tree is not well-defined, we have a loop. Abort semantic analysis
+  // FIX THIS: is there an abort function or something like this? this will continue with semantic analysos but I dont want this to happen
+  if (broken) { /* ABORT THE PROGRAM AFTER FINDING ALL ERRORS */ }
 }
 
 void ClassTable::install_basic_classes() {

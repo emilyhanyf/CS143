@@ -10,6 +10,8 @@
 #define TRUE 1
 #define FALSE 0
 
+class InheritanceNode;
+
 class InheritanceNode {
 private: 
   Class_ node;
