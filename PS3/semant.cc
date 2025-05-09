@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include "semant.h"
 #include "utilities.h"
+#include <set>
+#include <vector>
+#include <algorithm>
 
 extern int semant_debug;
 extern char *curr_filename;
@@ -91,7 +94,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   // install user-added new classes
   install_new_classes(classes);
   // check inheritance
-  check_inheritance();
+  check_inheritance(classes);
 }
 
 void ClassTable::install_new_classes(Classes classes) {
@@ -109,13 +112,56 @@ void ClassTable::install_new_classes(Classes classes) {
   }
 }
 
-void ClassTable::check_inheritance() {
+void ClassTable::check_inheritance(Classes classes) {
   // run my inheritance checking through the map
   // here is my premature plan:
   // FOR EACH class in our symbol table:
   // 1. traverse up its parents and keep track of the things weve seen
   // 2. if we see something we have already seen then that means we have a loop somehow, throw an error
   // 3. if we get all the way up to no_class, then we're good
+
+  // if we get to a class which we know terminates correctly in our tree, we can immediately terminate 
+  std::set<Symbol> classes_confirmed;
+  std::set<Symbol> classes_looped;
+  for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
+    bool broken = false;
+    Class_ current = classes->nth(i);
+    Symbol current_name = current->get_name();
+    std::set<Symbol> classes_seen;
+    while(true) {
+      // check if node has been seen already, or if the current node is a known bad node
+      // If this is not already a known , the program is broken and throw an error
+      if (classes_seen.count(current_name) != 0 ) { 
+        broken = true; 
+        semant_error(current); 
+        break; 
+      } 
+
+      // otherwise we do not want to throw another error or reset that it is broken, just break
+      if (classes_looped.count(current_name) != 0) {
+        break;
+      }
+
+      // if we have reached either a safe/checked node or the top of the tree
+      if (current_name == No_class or classes_confirmed.count(current_name) != 0) { 
+        // add seen nodes to list of safe nodes
+        classes_confirmed.insert(classes_seen.begin(), classes_seen.end());
+        break;
+      }
+
+      // otherwise insert the current node into seen nodes
+      classes_seen.insert(current_name);
+      InheritanceNodeP current_inheritance = lookup(current_name);
+      // find the current node's parent
+      Symbol current_parent = current_inheritance->get_parent();
+      // iterate over parent
+      current_name = current_parent;
+    }
+
+    // tree is not well-defined, we have a loop. Abort semantic analysis
+    // FIX THIS: is there an abort function or something like this? this will continue with semantic analysos but I dont want this to happen
+    if (broken) { /* ABORT THE PROGRAM AFTER FINDING ALL ERRORS */ }
+  }
 }
 
 void ClassTable::install_basic_classes() {
