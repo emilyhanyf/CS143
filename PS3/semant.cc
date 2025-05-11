@@ -211,12 +211,17 @@ void ClassTable::check_inheritance(Classes classes) {
     // Populate env with current class' methods and attributes
     Features features = curr_class->get_features(); 
     for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
-      Feature f = features->nth(j);
-      if (f->is_method()) { // if feature is a method, cast it to method_class* and add it to env
-        curr_env->add_method(f->get_name(), (method_class*)f);
-      } else { // if feature is an attribute, cast it to attr_class* and add it to env
-        attr_class* a = (attr_class*)f;
-        curr_env->add_variable(a->get_name(), a->get_type_decl());
+      Feature curr_feature = features->nth(j);
+
+      // if feature is a method, cast it to method_class* and add it to env
+      if (curr_feature->is_method()) { 
+        curr_env->add_method(curr_feature->get_name(), (method_class*)curr_feature);
+      } 
+
+      // if feature is an attribute, cast it to attr_class* and add it to env
+      else { 
+        attr_class* new_attribute = (attr_class*)curr_feature;
+        curr_env->add_variable(new_attribute->get_name(), new_attribute->get_type_decl());
       }
     }
     // Set current class's env to curr_env

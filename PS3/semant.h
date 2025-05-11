@@ -65,10 +65,10 @@ class Environment {
 public:
   SymbolTable<Symbol, Symbol> objects_table;
   SymbolTable<Symbol, method_class> methods_table;
-  Symbol current_class;
+  Class_ current_class;
 
 public:
-  Environment(Symbol c) : current_class(c) {
+  Environment(Class_ c) : current_class(c) {
     objects_table.enterscope();
     methods_table.enterscope();
   }
@@ -108,7 +108,7 @@ public:
   }
 
   Symbol get_class_type() {
-    return current_class;
+    return current_class->get_name();
   }
 };
 
