@@ -192,6 +192,36 @@ void ClassTable::check_inheritance(Classes classes) {
   // tree is not well-defined, we have a loop. Abort semantic analysis
   // FIX THIS: is there an abort function or something like this? this will continue with semantic analysos but I dont want this to happen
   if (broken) { /* ABORT THE PROGRAM AFTER FINDING ALL ERRORS */ }
+
+  // Create an environment for each class
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Class_ curr_class = classes->nth(i);
+    Environment* curr_env = new Environment(curr_class);
+    InheritanceNodeP node = lookup(curr_class->get_name());
+  
+    // Takes parent node's environment
+    Symbol parent_name = node->get_parent();
+    if (parent_name != No_class && parent_name != SELF_TYPE) {
+      InheritanceNodeP parent_node = lookup(parent_name);
+      if (parent_node && parent_node->get_env()) {
+        *curr_env = Environment(*parent_node->get_env());
+      }
+    }
+  
+    // Populate env with current class' methods and attributes
+    Features features = curr_class->get_features(); 
+    for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
+      Feature f = features->nth(j);
+      if (f->is_method()) { // if feature is a method, cast it to method_class* and add it to env
+        curr_env->add_method(f->get_name(), (method_class*)f);
+      } else { // if feature is an attribute, cast it to attr_class* and add it to env
+        attr_class* a = (attr_class*)f;
+        curr_env->add_variable(a->get_name(), a->get_type_decl());
+      }
+    }
+    // Set current class's env to curr_env
+    node->set_env(curr_env);
+  }
 }
 
 void ClassTable::install_basic_classes() {
