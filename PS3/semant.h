@@ -6,6 +6,7 @@
 #include "stringtab.h"
 #include "symtab.h"
 #include <list>
+#include <vector>
 
 #define TRUE 1
 #define FALSE 0
@@ -18,6 +19,7 @@ private:
   Class_ node;
   Symbol name;
   Symbol parent;
+  std::vector<Symbol> children;
   Environment* env;
 
 public:
@@ -34,6 +36,8 @@ public:
   Class_ get_node() { return node; }
   Environment* get_env() { return env; }
   void set_env(Environment* curr_env) { env = curr_env; }
+  void add_child(Symbol child) { children.push_back(child); }
+  std::vector<Symbol> get_children() { return children; }
 };
 
 typedef InheritanceNode *InheritanceNodeP;

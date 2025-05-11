@@ -110,6 +110,14 @@ void ClassTable::install_new_classes(Classes classes) {
       addid(current_name, append);
     }
   }
+
+  // must find children now that everything has a node
+  for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
+    Class_ current = classes->nth(i);
+    Symbol current_name = current->get_name();
+    Symbol current_parent = current->get_parent();
+    
+  }
 }
 
 void ClassTable::check_inheritance(Classes classes) {
@@ -336,6 +344,8 @@ void ClassTable::install_basic_classes() {
 
        // Install basic classes into class table, add them with inhertianceNode so that we can traverse inheritance later
       InheritanceNodeP Object_inheritance = new InheritanceNode(Object_class);
+      // Manually set Object's base children here
+      Object_inheritance->add_child(IO); Object_inheritance->add_child(Int); Object_inheritance->add_child(Bool); Object_inheritance->add_child(Str);   
       addid(Object, Object_inheritance);
       InheritanceNodeP IO_inheritance = new InheritanceNode(IO_class);
       addid(IO, IO_inheritance);
