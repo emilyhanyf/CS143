@@ -107,17 +107,16 @@ void ClassTable::install_new_classes(Classes classes) {
       semant_error(current);
     } else {
       InheritanceNodeP append = new InheritanceNode(current);
+
+      if (append->get_parent() == Str, append->get_parent() == Bool, append->get_parent() == Int) {
+        semant_error(current);
+      }
+
       addid(current_name, append);
     }
   }
 
-  // must find children now that everything has a node
-  for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
-    Class_ current = classes->nth(i);
-    Symbol current_name = current->get_name();
-    Symbol current_parent = current->get_parent();
-    
-  }
+  if (lookup(Main) == nullptr) { semant_error(); }
 }
 
 void ClassTable::check_inheritance(Classes classes) {
@@ -135,7 +134,15 @@ void ClassTable::check_inheritance(Classes classes) {
   for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
+    Symbol parent = current->get_parent();
     std::set<Symbol> classes_seen;
+
+     // firstly, add children 
+     if (parent != No_class) {
+      InheritanceNodeP parent_node = lookup(parent);
+      parent_node->add_child(current_name);
+     }
+
     while(true) {
       // check if node has been seen already, or if the current node is a known bad node
       // If this is not already a known , the program is broken and throw an error

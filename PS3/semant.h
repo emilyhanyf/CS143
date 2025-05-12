@@ -12,6 +12,7 @@
 #define FALSE 0
 
 class InheritanceNode;
+class Environment;
 
 class InheritanceNode
 {
@@ -56,13 +57,20 @@ private:
   void install_new_classes(Classes classes);
   void check_inheritance(Classes classes);
   std::ostream &error_stream;
+  // std::vector<Symbol> classes_iterator;
 
 public:
   ClassTable(Classes);
   int errors() { return semant_errors; }
+  // std::vector<Symbol> get_iterator() { return classes_iterator; }
+  // void add_to_iterator(Symbol append) { classes_iterator.push_back(append); }
   std::ostream &semant_error();
   std::ostream &semant_error(Class_ c);
   std::ostream &semant_error(Symbol filename, tree_node *t);
+  // void addid_with_iterator(Symbol name, InheritanceNodeP data) {
+  //   addid(name, data);
+  //   add_to_iterator(name);
+  // }
 };
 
 class Environment {
