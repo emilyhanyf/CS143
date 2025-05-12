@@ -247,6 +247,15 @@ void ClassTable::check_inheritance(Classes classes) {
 
 
 
+    // change this function so that it starts at object and creates environment for every class and works down from there
+  
+
+
+
+
+
+
+
 
 
   // Create an environment for each class
@@ -265,7 +274,7 @@ void ClassTable::check_inheritance(Classes classes) {
     }
   
     // Populate env with current class' methods and attributes
-    Features features = curr_class->get_features(); 
+    Features features = curr_class->get_features();
     for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
       Feature curr_feature = features->nth(j);
 
@@ -282,6 +291,77 @@ void ClassTable::check_inheritance(Classes classes) {
     }
     // Set current class's env to curr_env
     node->set_env(curr_env);
+  }
+}
+
+
+// void ClassTable::create_environments() {
+//   // start at object, and recurse from there
+//   InheritanceNodeP root_node = lookup(Object);
+//   std::vector<Symbol> root_children = root_node->get_children();
+//   EnvironmentP base_environment = new Environment(root_node->get_node());
+//   root_node->set_env(base_environment);
+
+//   for (int i = 0 ; i < root_children.size() ; i++) {
+//     create_environments(root_children, base_environment);
+//   }
+// }
+
+// void ClassTable::create_environments(Symbol class_name, EnvironmentP last_environment) {
+//   InheritanceNodeP current_node = lookup(class_name);
+//   std::vector<Symbol> current_children = current_node->get_children();
+//   EnvironmentP current_environment = new Environment(last_environment);
+//   current_node->set_env(current_environment);
+
+//   for (int i = 0 ; i < current_children.size() ; i++) {
+//     create_environments(current_children[i], current_environment);
+//   }
+// }
+
+
+void ClassTable::create_environments() {
+  // start at object, and recurse from there
+  InheritanceNodeP root_node = lookup(Object);
+  std::vector<Symbol> root_children = root_node->get_children();
+  EnvironmentP base_environment = new Environment(root_node->get_node());
+  root_node->set_env(base_environment);
+
+  for (long unsigned int i = 0 ; i < root_children.size() ; i++) {
+    Symbol child = root_children[i];
+    create_environments(child, base_environment);
+  }
+}
+
+void ClassTable::create_environments(Symbol class_name, EnvironmentP environment) {
+  InheritanceNodeP current_inheritance = lookup(class_name);
+  std::vector<Symbol> current_children = current_inheritance->get_children();
+  environment->enter_scope();
+  Class_ current_node = current_inheritance->get_node();
+  environment->add_features(current_node);
+  current_inheritance->set_env(environment);
+
+  
+  for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
+    Symbol child = current_children[i];
+    create_environments(child, environment);
+  }
+}
+
+void Environment::add_features(Class_ curr_class) {
+  Features features = curr_class->get_features();
+  for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
+    Feature curr_feature = features->nth(j);
+
+    // if feature is a method, cast it to method_class* and add it to env
+    if (curr_feature->is_method()) { 
+      add_method(curr_feature->get_name(), (method_class*)curr_feature);
+    } 
+
+    // if feature is an attribute, cast it to attr_class* and add it to env
+    else { 
+      attr_class* new_attribute = (attr_class*)curr_feature;
+      add_variable(new_attribute->get_name(), new_attribute->get_type_decl());
+    }
   }
 }
 

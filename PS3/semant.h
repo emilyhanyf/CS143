@@ -13,6 +13,7 @@
 
 class InheritanceNode;
 class Environment;
+typedef Environment *EnvironmentP;
 
 class InheritanceNode
 {
@@ -36,7 +37,7 @@ public:
   Symbol get_parent() { return parent; }
   Class_ get_node() { return node; }
   Environment* get_env() { return env; }
-  void set_env(Environment* curr_env) { env = curr_env; }
+  void set_env(EnvironmentP curr_env) { env = curr_env; }
   void add_child(Symbol child) { children.push_back(child); }
   std::vector<Symbol> get_children() { return children; }
 };
@@ -56,6 +57,8 @@ private:
   void install_basic_classes();
   void install_new_classes(Classes classes);
   void check_inheritance(Classes classes);
+  void create_environments();
+  void create_environments(Symbol class_name, EnvironmentP environment);
   std::ostream &error_stream;
   bool abort = false;
 
@@ -78,6 +81,8 @@ public:
   Environment(Class_ c) : current_class(c) {
     objects_table.enterscope();
     methods_table.enterscope();
+
+    add_features(c);
   }
 
   // child inherits the environment from parent
@@ -85,6 +90,8 @@ public:
     objects_table = parent.objects_table;
     methods_table = parent.methods_table;
     current_class = parent.current_class;
+
+    // add features here
   }
 
   void enter_scope() {
@@ -117,6 +124,8 @@ public:
   Symbol get_class_type() {
     return current_class->get_name();
   }
+
+  void add_features(Class_ curr_class);
 };
 
 #endif
