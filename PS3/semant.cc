@@ -1,5 +1,3 @@
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -205,9 +203,51 @@ void ClassTable::check_inheritance(Classes classes) {
     }
   }
 
-  // tree is not well-defined, we have a loop. Abort semantic analysis
-  // FIX THIS: is there an abort function or something like this? this will continue with semantic analysos but I dont want this to happen
-  if (broken) { /* ABORT THE PROGRAM AFTER FINDING ALL ERRORS */ }
+  // no need to populate environments if broken
+  if (broken) { return; }
+
+
+  // CHECK KIDS
+  // for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
+  //   cout << "Class " << classes->nth(i)->get_name() << " has children: " << endl;
+  //   InheritanceNodeP node = lookup((classes->nth(i))->get_name());
+  //   if (node == nullptr) { continue; }
+  //   std::vector<Symbol> kids = node->get_children();
+  //   for (long unsigned int j = 0 ; j < kids.size() ; j++) {
+  //     cout << kids[j] << endl;
+  //   }
+  // }
+
+
+
+// Traverse the class list: 
+  // Add an environment structure as an entry to your class table 
+  // Build a method table - what redifinitions of methods are valid, ... 
+  // Build an attribute table - attr and type declerations 
+
+// def type_check(class): 
+//     features 
+//     child nodes
+// for feature in features: feature->type_check()
+// for each child in child_nodes, type_check(child)
+
+// feature
+    // method_class::type_check()
+    // enterscope - add formals 
+    // exitscope
+    // attr_class::type_check()
+
+
+
+
+
+
+
+  
+
+
+
+
 
   // Create an environment for each class
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
