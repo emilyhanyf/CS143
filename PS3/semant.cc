@@ -89,10 +89,15 @@ static void initialize_constants(void) {
 }
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
+  enterscope();
+  
   // install base classes
   install_basic_classes();
+  
   // install user-added new classes
   install_new_classes(classes);
+  if (abort) { return; }
+  
   // check inheritance
   check_inheritance(classes);
 }
@@ -104,21 +109,26 @@ void ClassTable::install_new_classes(Classes classes) {
 
     if(lookup(current_name) != nullptr) {
       // throw error if node is alr in inheritance graph
-      semant_error(current);
+      semant_error(current) << "Class " << current_name << " was previously defined." << endl;
     } else {
       InheritanceNodeP append = new InheritanceNode(current);
 
-      if (append->get_parent() == Str, append->get_parent() == Bool, append->get_parent() == Int) {
-        semant_error(current);
+      if (append->get_parent() == Str or append->get_parent() == Bool or append->get_parent() == Int) {
+        semant_error(current) << "Class " << current_name << " cannot inherit class " << append->get_parent() << "." << endl;
       }
 
       addid(current_name, append);
     }
   }
 
-  if (lookup(Main) == nullptr) { semant_error(); }
+  
+  if (lookup(Main) == nullptr) { semant_error() << "Class Main is not defined." << endl; }
 }
 
+
+
+
+// duplicates 
 void ClassTable::check_inheritance(Classes classes) {
   // run my inheritance checking through the map
   // here is my premature plan:
@@ -131,73 +141,64 @@ void ClassTable::check_inheritance(Classes classes) {
   std::set<Symbol> classes_confirmed;
   std::set<Symbol> classes_problem;
   bool broken = false;
-  for (int i = classes->first() ; classes->more(i) ; classes->next(i)) {
+  for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
     Symbol parent = current->get_parent();
     std::set<Symbol> classes_seen;
 
-     // firstly, add children 
-     if (parent != No_class) {
+    // self type parent is invalid
+    if (parent == SELF_TYPE) {
+      classes_problem.insert(classes_seen.begin(), classes_seen.end());
+      broken = true; 
+      semant_error(lookup(current_name)->get_node()) << "Class " << current_name << " cannot inherit class SELF_TYPE." << endl;
+      break;
+    }
+
+    // fix floating nodes with no valid parents
+    if (current_name != Object and parent == No_class) {
+      classes_problem.insert(classes_seen.begin(), classes_seen.end());
+      broken = true; 
+      semant_error(lookup(current_name)->get_node()) << "Floating node" << endl; 
+      break;
+    }
+
+    // undefined parent class
+    if (lookup(parent) == nullptr) {
+      classes_problem.insert(classes_seen.begin(), classes_seen.end());
+      broken = true; 
+      semant_error(lookup(current_name)->get_node()) << "Class " << current_name << " inherits from an undefined class " << parent << "." << endl; 
+      break;
+    }
+
+    // add children if parent is defined
+    if (parent != No_class) {
       InheritanceNodeP parent_node = lookup(parent);
       parent_node->add_child(current_name);
-     }
+    }
 
     while(true) {
       // check if node has been seen already, or if the current node is a known bad node
       // If this is not already a known , the program is broken and throw an error
-      if (classes_seen.count(current_name) != 0) { 
+      if (classes_seen.count(current_name) != 0 or classes_problem.count(current_name) != 0) { 
         classes_problem.insert(classes_seen.begin(), classes_seen.end());
         broken = true; 
-        semant_error(lookup(current_name)->get_node()); 
+        semant_error(current) << "Class " << current->get_name() << ", or an ancestor of " << current->get_name() << ", is involved in an inheritance cycle." << endl; 
         break; 
       } 
-
-     // if parent is SELF_TYPE, throw error and add nodes (including current) to problem nodes
-     if (current_name == SELF_TYPE) {
-      classes_problem.insert(classes_seen.begin(), classes_seen.end());
-      broken = true; 
-      semant_error(lookup(current_name)->get_node()); 
-      break; 
-    }
-
-      // otherwise we do not want to throw another error or reset that it is broken, just break
-      if (classes_problem.count(current_name) != 0) {
-        classes_problem.insert(classes_seen.begin(), classes_seen.end());
-        break;
-      }
-
-      // if we have reached either a safe/checked node or the top of the tree
       if (current_name == No_class or classes_confirmed.count(current_name) != 0) { 
         // add seen nodes to list of safe nodes
         classes_confirmed.insert(classes_seen.begin(), classes_seen.end());
         break;
       }
-
       // otherwise insert the current node into seen nodes
       classes_seen.insert(current_name);
+
       InheritanceNodeP current_inheritance = lookup(current_name);
-
-      // all errors below are below for a reason. They require the context of the current node and 
-
-      // undefined parent class
-      if (current_inheritance == nullptr) {
-        classes_problem.insert(classes_seen.begin(), classes_seen.end());
-        broken = true; 
-        semant_error(lookup(current_name)->get_node()); 
-        break; 
-      }
-
+      if (current_inheritance == nullptr) { break; }
       // find the current node's parent
       Symbol current_parent = current_inheritance->get_parent();
-
-      // fix floating nodes with no valid parents
-      if (current_name != Object and current_parent == No_class) {
-        classes_problem.insert(classes_seen.begin(), classes_seen.end());
-        broken = true; 
-        semant_error(lookup(current_name)->get_node()); 
-        break; 
-      }
+      if (current_parent == SELF_TYPE) { break; }
 
       // iterate over parent
       current_name = current_parent;
@@ -422,4 +423,6 @@ void program_class::semant() {
       cerr << "Compilation halted due to static semantic errors." << endl;
       exit(1);
    }
+
+
 }

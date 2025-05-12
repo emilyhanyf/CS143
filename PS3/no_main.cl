@@ -1,0 +1,3 @@
+Class Connor inherits Bool {
+
+};
