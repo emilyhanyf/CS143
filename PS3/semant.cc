@@ -256,7 +256,7 @@ void ClassTable::check_inheritance(Classes classes) {
 
 
 
-
+  /*
 
   // Create an environment for each class
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
@@ -292,8 +292,41 @@ void ClassTable::check_inheritance(Classes classes) {
     // Set current class's env to curr_env
     node->set_env(curr_env);
   }
+
+  */
 }
 
+
+// SEPERATE ENVIRONMENTS
+
+void ClassTable::create_environments() {
+  // start at object, and recurse from there
+  InheritanceNodeP root_inheritance = lookup(Object);
+  std::vector<Symbol> root_children = root_inheritance->get_children();
+  EnvironmentP base_environment = new Environment(root_inheritance->get_node());
+  root_inheritance->set_env(base_environment);
+
+  for (long unsigned int i = 0 ; i < root_children.size() ; i++) {
+    Symbol child = root_children[i];
+    create_environments(child, base_environment);
+  }
+}
+
+void ClassTable::create_environments(Symbol class_name, EnvironmentP last_environment) {
+  InheritanceNodeP current_inheritance = lookup(class_name);
+  std::vector<Symbol> current_children = current_inheritance->get_children();
+  Class_ current_node = current_inheritance->get_node();
+  EnvironmentP current_environment = new Environment(current_node, *last_environment);
+  current_inheritance->set_env(current_environment);
+
+  for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
+    Symbol child = current_children[i];
+    create_environments(child, current_environment);
+  }
+}
+
+
+// SCOPING (ITH THIS IS BETTER ?)
 
 // void ClassTable::create_environments() {
 //   // start at object, and recurse from there
@@ -302,51 +335,37 @@ void ClassTable::check_inheritance(Classes classes) {
 //   EnvironmentP base_environment = new Environment(root_node->get_node());
 //   root_node->set_env(base_environment);
 
-//   for (int i = 0 ; i < root_children.size() ; i++) {
-//     create_environments(root_children, base_environment);
+//   for (long unsigned int i = 0 ; i < root_children.size() ; i++) {
+//     Symbol child = root_children[i];
+//     create_environments(child, base_environment);
 //   }
 // }
 
-// void ClassTable::create_environments(Symbol class_name, EnvironmentP last_environment) {
-//   InheritanceNodeP current_node = lookup(class_name);
-//   std::vector<Symbol> current_children = current_node->get_children();
-//   EnvironmentP current_environment = new Environment(last_environment);
-//   current_node->set_env(current_environment);
-
-//   for (int i = 0 ; i < current_children.size() ; i++) {
-//     create_environments(current_children[i], current_environment);
-//   }
-// }
-
-
-void ClassTable::create_environments() {
-  // start at object, and recurse from there
-  InheritanceNodeP root_node = lookup(Object);
-  std::vector<Symbol> root_children = root_node->get_children();
-  EnvironmentP base_environment = new Environment(root_node->get_node());
-  root_node->set_env(base_environment);
-
-  for (long unsigned int i = 0 ; i < root_children.size() ; i++) {
-    Symbol child = root_children[i];
-    create_environments(child, base_environment);
-  }
-}
-
-void ClassTable::create_environments(Symbol class_name, EnvironmentP environment) {
-  InheritanceNodeP current_inheritance = lookup(class_name);
-  std::vector<Symbol> current_children = current_inheritance->get_children();
-  environment->enter_scope();
-  Class_ current_node = current_inheritance->get_node();
-  environment->add_features(current_node);
-  current_inheritance->set_env(environment);
+// void ClassTable::create_environments(Symbol class_name, EnvironmentP environment) {
+//   InheritanceNodeP current_inheritance = lookup(class_name);
+//   std::vector<Symbol> current_children = current_inheritance->get_children();
+//   environment->enter_scope();
+//   Class_ current_node = current_inheritance->get_node();
+//   environment->add_features(current_node);
+//   current_inheritance->set_env(environment);
 
   
-  for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
-    Symbol child = current_children[i];
-    create_environments(child, environment);
-  }
+//   for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
+//     Symbol child = current_children[i];
+//     create_environments(child, environment);
+//   }
+// }
+
+
+void ClassTable::type_check(Symbol curr_class) {
+  // first, type check features
+
+  // for each feature, run type check on the feature
+  // then, type check children
 }
 
+
+// method to add features from given class AST node
 void Environment::add_features(Class_ curr_class) {
   Features features = curr_class->get_features();
   for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
@@ -364,6 +383,8 @@ void Environment::add_features(Class_ curr_class) {
     }
   }
 }
+
+
 
 void ClassTable::install_basic_classes() {
   // The tree package uses these globals to annotate the classes built below.
@@ -544,7 +565,8 @@ void program_class::semant() {
       exit(1);
    }
 
-   
+   classtable->create_environments();
+   classtable->type_check();
 
 
 }

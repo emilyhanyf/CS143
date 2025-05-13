@@ -57,7 +57,6 @@ private:
   void install_basic_classes();
   void install_new_classes(Classes classes);
   void check_inheritance(Classes classes);
-  void create_environments();
   void create_environments(Symbol class_name, EnvironmentP environment);
   std::ostream &error_stream;
   bool abort = false;
@@ -69,6 +68,8 @@ public:
   std::ostream &semant_error(Class_ c);
   std::ostream &semant_error(Symbol filename, tree_node *t);
   void _abort() { abort = true; }
+  void create_environments();
+  void type_check();
 };
 
 class Environment {
@@ -86,12 +87,11 @@ public:
   }
 
   // child inherits the environment from parent
-  Environment(const Environment &parent) {
+  Environment(Class_ c, const Environment &parent) : current_class(c) {
     objects_table = parent.objects_table;
     methods_table = parent.methods_table;
-    current_class = parent.current_class;
 
-    // add features here
+    add_features(c);
   }
 
   void enter_scope() {
