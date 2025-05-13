@@ -8,9 +8,13 @@
 //
 //////////////////////////////////////////////////////////
 
-
 #include "tree.h"
 #include "cool-tree.handcode.h"
+
+class ClassTable;
+typedef ClassTable *ClassTableP;
+class Environment;
+typedef Environment *EnvironmentP;
 
 // define the class for phylum
 // define simple phylum - Program
@@ -48,6 +52,7 @@ class Feature_class : public tree_node {
 public:
    tree_node *copy()		 { return copy_Feature(); }
    virtual Feature copy_Feature() = 0;
+   virtual void type_check(ClassTableP classtable, EnvironmentP env) = 0;
 
 #ifdef Feature_EXTRAS
    Feature_EXTRAS
@@ -186,6 +191,7 @@ public:
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
+   void type_check(ClassTableP classtable, EnvironmentP env);
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS
@@ -210,6 +216,7 @@ public:
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
+   void type_check(ClassTableP classtable, EnvironmentP env);
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS

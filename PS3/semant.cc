@@ -6,6 +6,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include "cool-tree.h"
 
 extern int semant_debug;
 extern char *curr_filename;
@@ -85,6 +86,22 @@ static void initialize_constants(void) {
   type_name   = idtable.add_string("type_name");
   val         = idtable.add_string("_val");
 }
+
+void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  if (classtable->lookup(type_decl) == nullptr) {
+    classtable->semant_error() << "type not defined" << endl;
+  }
+
+  if (type_decl != init->type_check(classtable, env)) {
+    classtable->semant_error() << "type not consistent" << endl;
+  }
+}
+
+void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
+
+}
+
+
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   enterscope();

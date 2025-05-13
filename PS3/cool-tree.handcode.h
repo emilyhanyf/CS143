@@ -4,6 +4,7 @@
 #include <iostream>
 #include "tree.h"
 #include "stringtab.h"
+
 #define yylineno curr_lineno
 extern int yylineno;
 
@@ -68,7 +69,7 @@ typedef Cases_class *Cases;
 #define Feature_EXTRAS					\
   virtual void dump_with_types(ostream&,int) = 0; \
   virtual bool is_method() = 0; \
-  virtual Symbol get_name() = 0;
+  virtual Symbol get_name() = 0; \
 
 #define Feature_SHARED_EXTRAS			\
   void dump_with_types(ostream&,int);
@@ -80,7 +81,7 @@ typedef Cases_class *Cases;
 #define attr_EXTRAS \
   bool is_method() { return false; } \
   Symbol get_name() { return name; } \
-  Symbol get_type_decl() { return type_decl; }
+  Symbol get_type_decl() { return type_decl; } \
 
 #define Formal_EXTRAS					      \
   virtual void dump_with_types(ostream&,int) = 0;
