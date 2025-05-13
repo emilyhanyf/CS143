@@ -60,6 +60,7 @@ private:
   void create_environments(Symbol class_name, EnvironmentP environment);
   std::ostream &error_stream;
   bool abort = false;
+  void type_check_class(Symbol class_name);
 
 public:
   ClassTable(Classes);

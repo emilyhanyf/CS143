@@ -357,11 +357,20 @@ void ClassTable::create_environments(Symbol class_name, EnvironmentP last_enviro
 // }
 
 
-void ClassTable::type_check(Symbol curr_class) {
+void ClassTable::type_check_class(Symbol class_name) {
   // first, type check features
+  InheritanceNodeP curr_inheritance = lookup(class_name);
+  Class_ curr_class = curr_inheritance->get_node();
+  EnvironmentP curr_env = curr_inheritance->get_env();
+  Features feature_list = curr_class->get_features();
+  for (int i = feature_list->first() ; feature_list->more(i) ; i = feature_list->next(i)) {
+    Feature curr_feature = feature_list->nth(i);
+    curr_feature->type_check(this, curr_env);
+  }
+}
 
-  // for each feature, run type check on the feature
-  // then, type check children
+void ClassTable::type_check() {
+  // start at object and recurse down its children
 }
 
 
