@@ -113,12 +113,11 @@ public:
     methods_table.addid(name, method);
   }
 
-  Symbol lookup_variable(Symbol name) {
-    Symbol *result = objects_table.lookup(name);
-    return result ? *result : nullptr;
+  Symbol* lookup_variable(Symbol name) {
+    return objects_table.lookup(name);
   }
 
-  method_class *lookup_method(Symbol name) {
+  method_class* lookup_method(Symbol name) {
     return methods_table.lookup(name);
   }
 

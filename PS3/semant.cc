@@ -89,7 +89,12 @@ static void initialize_constants(void) {
 
 Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // "name" is objects name, look up in env
-  return Int;
+  Symbol* object_type = env->lookup_variable(name);
+  if (object_type == nullptr) {
+    classtable->semant_error() << "variable doesnt exist" << endl;
+  }
+  
+  return *object_type;
 }
 
 Symbol no_expr_class::type_check(ClassTableP classtable, EnvironmentP env) {
@@ -146,15 +151,48 @@ Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+
+  if (e1_type != Int) {
+    classtable->semant_error() << "Argument 1 is not an int" << endl;
+  }
+
+  if (e2_type != Int) {
+    classtable->semant_error() << "Argument 2 is not an int" << endl;
+  }
+
   return Int;
 }
 
 Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+
+  if (e1_type != Int) {
+    classtable->semant_error() << "Argument 1 is not an int" << endl;
+  }
+
+  if (e2_type != Int) {
+    classtable->semant_error() << "Argument 2 is not an int" << endl;
+  }
+
   return Int;
 }
 
 Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+
+  if (e1_type != Int) {
+    classtable->semant_error() << "Argument 1 is not an int" << endl;
+  }
+
+  if (e2_type != Int) {
+    classtable->semant_error() << "Argument 2 is not an int" << endl;
+  }
+
+  return Int;
 }
 
 Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
