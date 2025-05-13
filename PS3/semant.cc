@@ -87,6 +87,112 @@ static void initialize_constants(void) {
   val         = idtable.add_string("_val");
 }
 
+Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol no_expr_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol isvoid_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol new__class::type_check(ClassTableP classtable, EnvironmentP env) {
+  Symbol type_name = this->type_name;
+  Symbol current_class = env->get_class_type();
+  if (type_name == SELF_TYPE) { return SELF_TYPE; }
+  else {
+    if (classtable->lookup(type_name) == nullptr) {
+      classtable->semant_error() << "type doesnt exist" << endl;
+    } else {
+      return type_name;
+    }
+  }
+}
+
+Symbol string_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Str;
+}
+
+Symbol bool_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Bool;
+}
+
+Symbol int_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol block_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  return Int;
+}
+
+
 void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (classtable->lookup(type_decl) == nullptr) {
     classtable->semant_error() << "type not defined" << endl;
@@ -100,6 +206,8 @@ void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
 void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
 }
+
+
 
 
 
