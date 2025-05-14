@@ -198,7 +198,6 @@ Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != Int) {
     classtable->semant_error() << "Argument 1 is not an int" << endl;
   }
-
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
@@ -213,7 +212,6 @@ Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != Int) {
     classtable->semant_error() << "Argument 1 is not an int" << endl;
   }
-
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
@@ -326,21 +324,26 @@ Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
   return Object;
 }
 
-Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  env->enter_scope();
-
-  env->exit_scope();
-  return Int;
-}
-
 Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // pred must have type Bool
   Symbol pred_type = pred->type_check(classtable, env);
   if (pred_type != Bool) {
     classtable->semant_error() << "pred not bool" << endl;
+    return Object;
   }
 
-  
+  Symbol then_type = then_exp->type_check(classtable, env);
+  Symbol else_type = else_exp->type_check(classtable, env);
+
+  Symbol cond_type = classtable->lub(then_type, else_type, env);
+  this->set_type(cond_type);
+  return cond_type;
+}
+
+Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  env->enter_scope();
+
+  env->exit_scope();
   return Int;
 }
 
@@ -655,7 +658,7 @@ void ClassTable::create_environments() {
   // start at object, and recurse from there
   InheritanceNodeP root_inheritance = lookup(Object);
   std::vector<Symbol> root_children = root_inheritance->get_children();
-  EnvironmentP base_environment = new Environment(root_inheritance->get_node());
+  EnvironmentP base_environment = new Environment(root_inheritance->get_node(), this);
   root_inheritance->set_env(base_environment);
 
   for (long unsigned int i = 0 ; i < root_children.size() ; i++) {
@@ -668,7 +671,7 @@ void ClassTable::create_environments(Symbol class_name, EnvironmentP last_enviro
   InheritanceNodeP current_inheritance = lookup(class_name);
   std::vector<Symbol> current_children = current_inheritance->get_children();
   Class_ current_node = current_inheritance->get_node();
-  EnvironmentP current_environment = new Environment(current_node, *last_environment);
+  EnvironmentP current_environment = new Environment(current_node, *last_environment, this);
   current_inheritance->set_env(current_environment);
 
   for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
@@ -727,18 +730,64 @@ void ClassTable::type_check() {
 
 
 // method to add features from given class AST node
-void Environment::add_features(Class_ curr_class) {
+// TODO: add classtable, self
+void Environment::add_features(Class_ curr_class, ClassTableP classtable) {
   Features features = curr_class->get_features();
+  std::set<Symbol> current_class_methods;
+  std::set<Symbol> current_class_attributes;
+
   for (int j = features->first(); features->more(j); j = features->next(j)) { // go through each feature
     Feature curr_feature = features->nth(j);
 
     // if feature is a method, cast it to method_class* and add it to env
     if (curr_feature->is_method()) { 
-      add_method(curr_feature->get_name(), (method_class*)curr_feature);
+      // check if method is already in method table
+      Symbol method_name = curr_feature->get_name();
+      if (current_class_methods.count(method_name)) {
+        classtable->semant_error(curr_class) << "Method " << method_name << " is multiply defined in class " << curr_class->get_name() << endl;
+        continue;
+      }
+      current_class_methods.insert(method_name);
+
+      method_class* parent_method = lookup_method(method_name);
+      method_class* child_method = (method_class*)curr_feature;
+
+      // check both methods have the same # of parameters, parameter types, and return types
+      if (parent_method != nullptr) {
+        if (parent_method->get_return_type() != child_method->get_return_type()) {
+          classtable->semant_error(curr_class) << "Redefinition of function has different return type" << endl;
+          continue;
+        }
+
+        Formals parent_formals = parent_method->get_formals();
+        Formals child_formals = child_method->get_formals();
+        if (parent_formals->len() != child_formals->len()) {
+          classtable->semant_error(curr_class) << "Redefinition of function has different number of parameters" << endl;
+          continue;
+        }
+
+        for(int i = parent_formals->first(); parent_formals->more(i); i = parent_formals->next(i)) {
+          if (parent_formals->nth(i)->get_formal_type() != child_formals->nth(i)->get_formal_type()) {
+            classtable->semant_error(curr_class) << "Redefinition of function has different parameter types" << endl;
+            break;
+          }
+        }
+      }
+  
+      add_method(method_name, child_method);
     } 
 
     // if feature is an attribute, cast it to attr_class* and add it to env
     else { 
+      // Check if variable already declared
+      Symbol attr_name = curr_feature->get_name();
+      if (current_class_attributes.count(attr_name)) {
+        classtable->semant_error(curr_class) << "Attribute " << attr_name << " is multiply defined in class " << curr_class->get_name() << endl;
+        continue;
+      }
+      current_class_attributes.insert(attr_name);
+
+      // Add it if it doesn't already exist
       attr_class* new_attribute = (attr_class*)curr_feature;
       add_variable(new_attribute->get_name(), new_attribute->get_type_decl());
     }

@@ -80,20 +80,21 @@ public:
   SymbolTable<Symbol, Symbol> objects_table;
   SymbolTable<Symbol, method_class> methods_table;
   Class_ current_class;
+  ClassTableP classtable;
 
 public:
-  Environment(Class_ c) : current_class(c) {
+  Environment(Class_ c, ClassTableP classt) : current_class(c), classtable(classt) {
     enter_scope();
-    add_features(c);
+    add_features(c, classt);
   }
 
   // child inherits the environment from parent
-  Environment(Class_ c, const Environment &parent) : current_class(c) {
+  Environment(Class_ c, const Environment &parent, ClassTableP classt) : current_class(c), classtable(classt) {
     enter_scope();
     objects_table = parent.objects_table;
     methods_table = parent.methods_table;
 
-    add_features(c);
+    add_features(c, classt);
   }
 
   void enter_scope() {
@@ -126,7 +127,7 @@ public:
     return current_class->get_name();
   }
 
-  void add_features(Class_ curr_class);
+  void add_features(Class_ curr_class, ClassTableP classtable);
 };
 
 #endif

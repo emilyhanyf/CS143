@@ -1,5 +1,13 @@
 Class Food{};
-Class Fruit inherits Food{};
-Class Apple inherits Fruit{};
-Class Banana inherits Fruit{};
-Class Main {};
+Class Fruit inherits Food{
+    poop() : Int { 1; };
+};
+Class Apple inherits Fruit{
+    poop() : Int { 1; };
+};
+Class Banana inherits Fruit{
+    poop() : Int { 1; };
+};
+Class Main {
+    main() : Int { 1; };
+};
