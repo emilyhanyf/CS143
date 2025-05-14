@@ -97,12 +97,15 @@ Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
   return *object_type;
 }
 
+
+// ask about
 Symbol no_expr_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  return No_type;
 }
 
 Symbol isvoid_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  e1->type_check(classtable, env);
+  return Bool;
 }
 
 Symbol new__class::type_check(ClassTableP classtable, EnvironmentP env) {
@@ -147,6 +150,10 @@ Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  Symbol expression_type = e1->type_check(classtable, env);
+  if (expression_type != Int) {
+    classtable->semant_error() << "can only negate int" << endl;
+  }
   return Int;
 }
 
@@ -223,7 +230,12 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  Symbol pred_type = pred->type_check(classtable, env);
+  if (pred_type != Bool) {
+    classtable->semant_error() << "pred not bool" << endl;
+  }
+
+  return Object;
 }
 
 Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
@@ -239,7 +251,17 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
 }
 
 Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  Symbol* object_type = env->lookup_variable(name);
+  if (object_type == nullptr) {
+    classtable->semant_error() << "variable doesnt exist" << endl;
+  }
+
+  Symbol expression_type = expr->type_check(classtable, env);
+  if (classtable->is_ancestor(expression_type, *object_type)) {
+    classtable->semant_error() << "expr and variable dont match" << endl;
+  }
+
+  return expression_type;
 }
 
 
@@ -258,8 +280,27 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 
+bool ClassTable::is_ancestor(Symbol child, Symbol parent) {
+  // traverse through child's parents
+  Symbol curr_node = child;
+  while (true) {
+    if (curr_node == parent) {
+      return true;
+    }
 
+    if (curr_node == No_class) {
+      return false;
+    }
 
+    InheritanceNodeP curr_inheritance = lookup(curr_node);
+    if (curr_inheritance == nullptr) {
+      semant_error() << "type does not exist" << endl;
+      return false;
+    }
+
+    curr_node = curr_inheritance->get_parent();
+  }
+}
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   enterscope();
