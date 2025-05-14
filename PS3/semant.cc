@@ -98,7 +98,7 @@ Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 
-// ask about
+// TODO: ask about
 Symbol no_expr_class::type_check(ClassTableP classtable, EnvironmentP env) {
   return No_type;
 }
@@ -134,19 +134,53 @@ Symbol int_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  Symbol e1_type = e1->type_check(classtable, env);
+  if (e1_type != Bool) {
+    classtable->semant_error() << "'Not' must be a bool" << endl;
+  }
+  return Bool;
 }
 
 Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
-}
-
-Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+  if (e1_type != Int) {
+    classtable->semant_error() << "Argument 1 is not an int" << endl;
+  }
+  if (e2_type != Int) {
+    classtable->semant_error() << "Argument 2 is not an int" << endl;
+  }
+  return Bool;
 }
 
 Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+  if (e1_type != Int) {
+    classtable->semant_error() << "Argument 1 is not an int" << endl;
+  }
+  if (e2_type != Int) {
+    classtable->semant_error() << "Argument 2 is not an int" << endl;
+  }
+  return Bool;
+}
+
+Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  Symbol e1_type = e1->type_check(classtable, env);
+  Symbol e2_type = e2->type_check(classtable, env);
+  bool comparable1 = (e1_type == Int || e1_type == Bool || e1_type == Str);
+  bool comparable2 = (e2_type == Int || e2_type == Bool || e2_type == Str);
+
+  if (!comparable1) {
+    classtable->semant_error() << "Argument 1 is not an int, bool, or string" << endl;
+  }
+  if (!comparable2) {
+    classtable->semant_error() << "Argument 2 is not an int, bool, or string" << endl;
+  }
+  if (e1_type != e2_type) {
+    classtable->semant_error() << "Argument 1 and 2 are not of the same type and cannot be compared." << endl;
+  }
+  return Bool;
 }
 
 Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
@@ -194,7 +228,6 @@ Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != Int) {
     classtable->semant_error() << "Argument 1 is not an int" << endl;
   }
-
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
@@ -209,7 +242,6 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != Int) {
     classtable->semant_error() << "Argument 1 is not an int" << endl;
   }
-
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
@@ -217,16 +249,72 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
   return Int;
 }
 
-Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
-}
-
+// Static type of the block is the static type of the last expression (from Cool manual sec 7.7)
 Symbol block_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  if (body == NULL) {
+    classtable->semant_error() << "This block has no body" << endl;
+    return No_type; //TODO: do we return No_type or Object?
+  }
+  Symbol type = Object;
+  for(int i = body->first(); body->more(i); i = body->next(i)) {
+    type = body->nth(i)->type_check(classtable, env);
+  }
+  return type;
 }
 
+// Cool manual sec 7.9
 Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  // TOOD: is void the same as NULL?
+  Symbol expr_type = expr->type_check(classtable, env);
+  if (expr_type == nullptr) {
+    classtable->semant_error() << "This expression has no valid type" << endl;
+    return Object;
+  }
+  // every case must have at least one branch
+  if (cases == nullptr) {
+    classtable->semant_error() << "Case expressions has no branch" << endl;
+    return Object;
+  }
+
+  std::set<Symbol> seen_types;
+  std::vector<Symbol> branch_expr_types;
+  for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
+    Case curr_branch = cases->nth(i);
+    Symbol branch_type = curr_branch->get_type_decl();
+
+    // ensure that no branch has duplicate type
+    if (seen_types.count(branch_type)) {
+      classtable->semant_error() << "Cannot have duplicate branch type in case expression" << endl;
+      return Object; //TODO: should i do this here? prob right? since the end return statement won't exist for this case
+    } else {
+      seen_types.insert(branch_type);
+    }
+
+    if (branch_type != SELF_TYPE && classtable->lookup(branch_type) == nullptr) {
+      classtable->semant_error() << "Case branch declared with undefined type " << branch_type << endl;
+      return Object; //TODO: should i do this here? same question as above
+    }
+    // add seen branch type to vector branch_expr_types
+    Symbol branch_expr_type = curr_branch->type_check(classtable, env);
+    branch_expr_types.push_back(branch_expr_type);
+  }
+  // The static type of a case expression is lub(all branches)
+  Symbol case_expr_type = branch_expr_types[0];
+  for (size_t i = 1; i < branch_expr_types.size(); i++) {
+    case_expr_type = classtable->lub(case_expr_type, branch_expr_types[i], env);
+  }
+  return case_expr_type;
+}
+
+Symbol branch_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
+    classtable->semant_error() << "Branch declared with undefined type" << endl;
+  }
+  env->enter_scope();
+  env->add_variable(name, type_decl);
+  Symbol type = expr->type_check(classtable, env);
+  env->exit_scope();
+  return type;
 }
 
 Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
@@ -234,11 +322,25 @@ Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (pred_type != Bool) {
     classtable->semant_error() << "pred not bool" << endl;
   }
-
+  body->type_check(classtable, env);
   return Object;
 }
 
+Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  env->enter_scope();
+
+  env->exit_scope();
+  return Int;
+}
+
 Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  // pred must have type Bool
+  Symbol pred_type = pred->type_check(classtable, env);
+  if (pred_type != Bool) {
+    classtable->semant_error() << "pred not bool" << endl;
+  }
+
+  
   return Int;
 }
 
@@ -254,29 +356,63 @@ Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
     classtable->semant_error() << "variable doesnt exist" << endl;
+    return Object;  //TODO: do we need this?
   }
-
   Symbol expression_type = expr->type_check(classtable, env);
-  if (classtable->is_ancestor(expression_type, *object_type)) {
+  if (!classtable->is_ancestor(expression_type, *object_type)) {
     classtable->semant_error() << "expr and variable dont match" << endl;
+    return Object;  //TODO: do we need this?
   }
-
   return expression_type;
 }
 
-
+// TODO: confirm init can be No_type
 void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  if (classtable->lookup(type_decl) == nullptr) {
+  if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
     classtable->semant_error() << "type not defined" << endl;
   }
-
-  if (type_decl != init->type_check(classtable, env)) {
+  Symbol init_type = init->type_check(classtable, env); //init does not have to have an expression
+  if (init_type!= No_type && type_decl != init->type_check(classtable, env)) {
     classtable->semant_error() << "type not consistent" << endl;
   }
 }
 
 void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
+}
+
+// Lub - least upper bound for two classes
+Symbol ClassTable::lub(Symbol class1, Symbol class2, EnvironmentP env) {
+  if (class1 == nullptr || class2 == nullptr) {
+    semant_error() << "trying to find the least upper bound of a non-existent class" << endl;
+    return Object;
+  } 
+  if (class1 == class2) { return class1; }
+  if (class1 == SELF_TYPE) { class1 = env->get_class_type(); };
+  if (class2 == SELF_TYPE) { class2 = env->get_class_type(); };
+
+  // Add all ancestors of class1 to a set, named ancestors1
+  std::set<Symbol> ancestors1;
+  InheritanceNodeP node1 = lookup(class1);
+  while (node1 != nullptr) {
+    ancestors1.insert(node1->get_name());
+    Symbol node1_parent = node1->get_parent();
+    node1 = lookup(node1_parent);
+  }
+
+  // Go through ancestors of class2 in order
+  // Returns when its ancestor is in the set of ancestors1
+  InheritanceNodeP node2 = lookup(class2);
+  while (node2 != nullptr) {
+    if (ancestors1.count(node2->get_name()) > 0) {
+      return node2->get_name();
+    }
+    Symbol node2_parent = node2->get_parent();
+    node2 = lookup(node2_parent);
+  }
+
+  semant_error() << "least upper bound does not exist" << endl;
+  return Object;
 }
 
 

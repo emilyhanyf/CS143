@@ -72,6 +72,7 @@ public:
   void create_environments();
   void type_check();
   bool is_ancestor(Symbol child, Symbol parent);
+  Symbol lub(Symbol class1, Symbol class2, EnvironmentP env);
 };
 
 class Environment {
@@ -82,14 +83,13 @@ public:
 
 public:
   Environment(Class_ c) : current_class(c) {
-    objects_table.enterscope();
-    methods_table.enterscope();
-
+    enter_scope();
     add_features(c);
   }
 
   // child inherits the environment from parent
   Environment(Class_ c, const Environment &parent) : current_class(c) {
+    enter_scope();
     objects_table = parent.objects_table;
     methods_table = parent.methods_table;
 

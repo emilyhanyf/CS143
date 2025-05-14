@@ -96,6 +96,10 @@ class Case_class : public tree_node {
 public:
    tree_node *copy()		 { return copy_Case(); }
    virtual Case copy_Case() = 0;
+   virtual Symbol type_check(ClassTableP classtable, EnvironmentP env) = 0;
+   virtual Symbol get_type_decl() = 0;
+   virtual Symbol get_name() = 0;
+   virtual Expression get_expr() = 0;
 
 #ifdef Case_EXTRAS
    Case_EXTRAS
@@ -262,8 +266,12 @@ public:
       type_decl = a2;
       expr = a3;
    }
+   Symbol get_type_decl() { return type_decl; }
+   Symbol get_name() { return name; }
+   Expression get_expr() { return expr; }
    Case copy_Case();
    void dump(ostream& stream, int n);
+   Symbol type_check(ClassTableP classtable, EnvironmentP env);
 
 #ifdef Case_SHARED_EXTRAS
    Case_SHARED_EXTRAS
