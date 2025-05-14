@@ -342,13 +342,78 @@ Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
 Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
   env->enter_scope();
+  //  The type of let is the type of the body
 
+  if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
+    classtable->semant_error() << "Let variable type is not defined" << endl;
+    return Object;
+  }
+
+  Symbol init_type = init->type_check(classtable, env);
+  if (init_type != No_type && !classtable->is_ancestor(init_type, type_decl)) { //init_type is a child of type_decl
+    classtable->semant_error() << "Initializer type does not match declared type" << endl;
+    return Object;
+  }
+
+  env->add_variable(identifier, type_decl);
+  Symbol let_body_type = body->type_check(classtable, env);
+  this->set_type(let_body_type); //set the final type of let statement in AST
   env->exit_scope();
-  return Int;
+  return let_body_type;
 }
 
 Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
-  return Int;
+  // type of e0
+  Symbol expr_type = expr->type_check(classtable, env);
+  Symbol dispatch_class;
+  if (expr_type == SELF_TYPE) {
+    dispatch_class = env->get_class_type();
+  } else {
+    dispatch_class = expr_type;
+  }
+
+  // Check if class exists
+  InheritanceNodeP curr_node_class = classtable->lookup(dispatch_class);
+  if (curr_node_class == nullptr) {
+    classtable->semant_error() << "Cannot dispatch on undefined class" << endl;
+    this->set_type(Object);
+    return Object;
+  }
+  // Check if method exists in class
+  method_class* method = curr_node_class->get_env()->lookup_method(name);
+  if (method == nullptr) {
+    classtable->semant_error() << "Method " << name << "does not exist in class " << curr_node_class << endl;
+    this->set_type(Object);
+    return Object;
+  }
+
+  //  the dispatch and the definition of f must have the same number of arguments
+  Formals formals = method->get_formals();
+  if (formals->len() != actual->len()) {
+    classtable->semant_error() << "Method has different number of arguments as dispatch" << endl;
+  }
+  
+  //  the static type of the ith actual parameter must conform to the declared type of the ith formal parameter
+  for(int i = actual->first(), j = formals->first(); actual->more(i); i = actual->next(i), j = formals->next(j)) {
+    Symbol actual_type = actual->nth(i)->type_check(classtable, env);
+    Symbol formal_type = formals->nth(j)->get_formal_type();
+    if (!classtable->is_ancestor(actual_type, formal_type)) {
+      classtable->semant_error() << "Arguments do not match the expected parameter types for method " << name << endl;
+    }
+  }
+  
+  // If f has return type B and B is a class name, then the static type of the dispatch is B. 
+  // Otherwise, if f has return type SELF_TYPE, then static type of the dispatch is A.
+  Symbol method_return_type = method->get_return_type();
+  Symbol final_type;
+
+  if (method_return_type != SELF_TYPE) {
+    final_type = method_return_type;  // B (refer to Cool manual)
+  } else {
+    final_type = expr_type;  // A (refer to Cool manual)
+  }
+  this->set_type(final_type);
+  return final_type;
 }
 
 Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
