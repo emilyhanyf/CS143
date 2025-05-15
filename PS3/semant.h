@@ -127,6 +127,8 @@ public:
     return current_class->get_name();
   }
 
+  Class_ get_class_node() const { return current_class; }
+
   void add_features(Class_ curr_class, ClassTableP classtable);
 };
 

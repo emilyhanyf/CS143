@@ -92,7 +92,7 @@ Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
   env->add_variable(self, SELF_TYPE);
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error() << "In class " << name << "variable doesnt exist" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "In class " << name << "variable doesnt exist" << endl;
     this->set_type(Object);
     return Object;
   }
@@ -122,7 +122,7 @@ Symbol new__class::type_check(ClassTableP classtable, EnvironmentP env) {
   }
   else {
     if (classtable->lookup(type_name) == nullptr) {
-      classtable->semant_error() << "type doesnt exist" << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "type doesnt exist" << endl;
       this->set_type(Object);
       return Object;
     } else {
@@ -150,7 +150,7 @@ Symbol int_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   if (e1_type != Bool) {
-    classtable->semant_error() << "'Not' must be a bool" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "'Not' must be a bool" << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -160,10 +160,10 @@ Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -173,10 +173,10 @@ Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -189,13 +189,13 @@ Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   bool comparable2 = (e2_type == Int || e2_type == Bool || e2_type == Str);
 
   if (!comparable1) {
-    classtable->semant_error() << "Argument 1 is not an int, bool, or string" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int, bool, or string" << endl;
   }
   if (!comparable2) {
-    classtable->semant_error() << "Argument 2 is not an int, bool, or string" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int, bool, or string" << endl;
   }
   if (e1_type != e2_type) {
-    classtable->semant_error() << "Argument 1 and 2 are not of the same type and cannot be compared." << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 and 2 are not of the same type and cannot be compared." << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -204,7 +204,7 @@ Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol expression_type = e1->type_check(classtable, env);
   if (expression_type != Int) {
-    classtable->semant_error() << "can only negate int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "can only negate int" << endl;
   }
   this->set_type(Int);
   return Int;
@@ -215,10 +215,10 @@ Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e2_type = e2->type_check(classtable, env);
 
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Int);
   return Int;
@@ -229,10 +229,10 @@ Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e2_type = e2->type_check(classtable, env);
 
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Int);
   return Int;
@@ -243,10 +243,10 @@ Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e2_type = e2->type_check(classtable, env);
 
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Int);
   return Int;
@@ -257,10 +257,10 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e2_type = e2->type_check(classtable, env);
   
   if (e1_type != Int) {
-    classtable->semant_error() << "Argument 1 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
   }
   if (e2_type != Int) {
-    classtable->semant_error() << "Argument 2 is not an int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
   }
   this->set_type(Int);
   return Int;
@@ -269,7 +269,7 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
 // Static type of the block is the static type of the last expression (from Cool manual sec 7.7)
 Symbol block_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (body == NULL) {
-    classtable->semant_error() << "This block has no body" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "This block has no body" << endl;
     return No_type; //TODO: do we return No_type or Object?
   }
   Symbol type = Object;
@@ -285,12 +285,12 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // TOOD: is void the same as NULL?
   Symbol expr_type = expr->type_check(classtable, env);
   if (expr_type == nullptr) {
-    classtable->semant_error() << "This expression has no valid type" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "This expression has no valid type" << endl;
     return Object;
   }
   // every case must have at least one branch
   if (cases == nullptr) {
-    classtable->semant_error() << "Case expressions has no branch" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Case expressions has no branch" << endl;
     return Object;
   }
 
@@ -302,14 +302,14 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
     // ensure that no branch has duplicate type
     if (seen_types.count(branch_type)) {
-      classtable->semant_error() << "Cannot have duplicate branch type in case expression" << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Cannot have duplicate branch type in case expression" << endl;
       return Object; //TODO: should i do this here? prob right? since the end return statement won't exist for this case
     } else {
       seen_types.insert(branch_type);
     }
 
     if (branch_type != SELF_TYPE && classtable->lookup(branch_type) == nullptr) {
-      classtable->semant_error() << "Case branch declared with undefined type " << branch_type << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Case branch declared with undefined type " << branch_type << endl;
       return Object; //TODO: should i do this here? same question as above
     }
     // add seen branch type to vector branch_expr_types
@@ -327,7 +327,7 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
 Symbol branch_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
-    classtable->semant_error() << "Branch declared with undefined type" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Branch declared with undefined type" << endl;
   }
   env->enter_scope();
   env->add_variable(name, type_decl);
@@ -339,7 +339,7 @@ Symbol branch_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol pred_type = pred->type_check(classtable, env);
   if (pred_type != Bool) {
-    classtable->semant_error() << "pred not bool" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "pred not bool" << endl;
   }
   body->type_check(classtable, env);
   this->set_type(Object);
@@ -350,7 +350,7 @@ Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // pred must have type Bool
   Symbol pred_type = pred->type_check(classtable, env);
   if (pred_type != Bool) {
-    classtable->semant_error() << "pred not bool" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "pred not bool" << endl;
     return Object;
   }
 
@@ -367,13 +367,13 @@ Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
   //  The type of let is the type of the body
 
   if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
-    classtable->semant_error() << "Let variable type is not defined" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Let variable type is not defined" << endl;
     return Object;
   }
 
   Symbol init_type = init->type_check(classtable, env);
   if (init_type != No_type && !classtable->is_ancestor(init_type, type_decl, env)) { //init_type is a child of type_decl
-    classtable->semant_error() << "Initializer type does not match declared type" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Initializer type does not match declared type" << endl;
     return Object;
   }
 
@@ -397,14 +397,14 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // Check if class exists
   InheritanceNodeP curr_node_class = classtable->lookup(dispatch_class);
   if (curr_node_class == nullptr) {
-    classtable->semant_error() << "Cannot dispatch on undefined class" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Cannot dispatch on undefined class" << endl;
     this->set_type(Object);
     return Object;
   }
   // Check if method exists in class
   method_class* method = curr_node_class->get_env()->lookup_method(name);
   if (method == nullptr) {
-    classtable->semant_error() << "Method " << name << "does not exist in class " << curr_node_class << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Dispatch to undefined method " << name << endl;
     this->set_type(Object);
     return Object;
   }
@@ -412,7 +412,9 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
   //  the dispatch and the definition of f must have the same number of arguments
   Formals formals = method->get_formals();
   if (formals->len() != actual->len()) {
-    classtable->semant_error() << "Method has different number of arguments as dispatch" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method has different number of arguments as dispatch" << endl;
+    this->set_type(Object);
+    return Object;
   }
   
   //  the static type of the ith actual parameter must conform to the declared type of the ith formal parameter
@@ -420,7 +422,7 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
     if (!classtable->is_ancestor(actual_type, formal_type, env)) {
-      classtable->semant_error() << "Arguments do not match the expected parameter types for method " << name << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Arguments do not match the expected parameter types for method " << name << endl;
     }
   }
   
@@ -451,32 +453,32 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
   // Check if class exists
   InheritanceNodeP T_node_class = classtable->lookup(type_name);
   if (T_node_class == nullptr) {
-    classtable->semant_error() << "Cannot dispatch on undefined class" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Cannot dispatch on undefined class" << endl;
     this->set_type(Object);
     return Object;
   }
   // Check if e0 class is a child of T
   if (!classtable->is_ancestor(dispatch_class, type_name, env)) {
-    classtable->semant_error() << "Expression type is not a child of the static dispatch type" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Expression type is not a child of the static dispatch type" << endl;
   }
   // Check if method exists in class
   method_class* method = T_node_class->get_env()->lookup_method(name);
   if (method == nullptr) {
-    classtable->semant_error() << "Method " << name << "does not exist in class " << type_name << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method " << name << "does not exist in class " << T_node_class << endl;
     this->set_type(Object);
     return Object;
   }
   // Check if parameters match
   Formals formals = method->get_formals();
   if (formals->len() != actual->len()) {
-    classtable->semant_error() << "Method has different number of arguments as dispatch" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method has different number of arguments as dispatch" << endl;
   }
   //  the static type of the ith actual parameter must conform to the declared type of the ith formal parameter
   for(int i = actual->first(), j = formals->first(); actual->more(i); i = actual->next(i), j = formals->next(j)) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
     if (!classtable->is_ancestor(actual_type, formal_type, env)) {
-      classtable->semant_error() << "Arguments do not match the expected parameter types for method " << name << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Arguments do not match the expected parameter types for method " << name << endl;
     }
   }
   // If f has return type B and B is a class name, then the static type of the dispatch is B. 
@@ -496,12 +498,12 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
 Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error() << "In class "<< name << " variable doesnt exist" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "In class "<< name << " variable doesnt exist" << endl;
     return Object;  //TODO: do we need this? // no cascading error by defining a bottom_type (global variable)
   }
   Symbol expression_type = expr->type_check(classtable, env);
   if (!classtable->is_ancestor(expression_type, *object_type, env)) {
-    classtable->semant_error() << "expr and variable dont match" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "expr and variable dont match" << endl;
     return Object;  //TODO: do we need this?
   }
   this->set_type(expression_type);
@@ -511,11 +513,11 @@ Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
 // TODO: confirm init can be No_type
 void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
-    classtable->semant_error() << "In attr_class " << name << " type not defined" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "In attr_class " << name << " type not defined" << endl;
   }
   Symbol init_type = init->type_check(classtable, env); //init does not have to have an expression
   if (init_type!= No_type && type_decl != init->type_check(classtable, env)) {
-    classtable->semant_error() << "type not consistent" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "type not consistent" << endl;
   }
 }
 
@@ -525,7 +527,7 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
   // return type is defined
   if (return_type != SELF_TYPE && classtable->lookup(return_type) == nullptr) {
-    classtable->semant_error() << "Return type " << return_type << " of method " << name << " is not a valid type" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Return type " << return_type << " of method " << name << " is not a valid type" << endl;
   }
 
   // identifiers used in the formal parameter list must be distinct
@@ -537,7 +539,7 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
     // check for duplicate parameter identifiers
     if (formals_so_far.count(curr_name) > 0) {
-      classtable->semant_error() << "There are two of the same formal parameter " << curr_name << " in method " << name << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "There are two of the same formal parameter " << curr_name << " in method " << name << endl;
     }
     else {
       formals_so_far.insert(curr_name);
@@ -545,12 +547,12 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
     // check for undefined formal parameters
     if (curr_type != SELF_TYPE && classtable->lookup(curr_type) == nullptr) {
-      classtable->semant_error() << "Formal parameter type " << curr_type << " in method " << name << " is undefined "<< endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Formal parameter type " << curr_type << " in method " << name << " is undefined "<< endl;
     }
 
     // formal parameters cannot be named "self"
     if (curr_name == self) {
-      classtable->semant_error() << "Method " << name << " has a formal parameter named 'self' which is not allowed." << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method " << name << " has a formal parameter named 'self' which is not allowed." << endl;
     }
 
     env->add_variable(curr_name, curr_type);
@@ -567,7 +569,7 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
     body_type = env->get_class_type();
   }
   if (body_type != No_type && !classtable->is_ancestor(body_type, final_return_type, env)) {
-    classtable->semant_error() << "Method " << name << " has a return type " << return_type << " that does not conform to body type " << body_type << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method " << name << " has a return type " << return_type << " that does not conform to body type " << body_type << endl;
   }
   env->exit_scope();
 
@@ -608,7 +610,7 @@ Symbol ClassTable::lub(Symbol class1, Symbol class2, EnvironmentP env) {
     node2 = lookup(node2_parent);
   }
 
-  // semant_error() << "least upper bound does not exist" << endl;
+  // semant_error(env->get_class_node()->get_filename(), this) << "least upper bound does not exist" << endl;
   return Object;
 }
 
@@ -933,7 +935,7 @@ void ClassTable::type_check() {
   while (!q.empty()) {
     Symbol current_class = q.back();
     q.pop_back();
-    if (current_class != Object || current_class != Int || current_class != Bool || current_class != Str || current_class != IO) {
+    if (current_class != Object && current_class != Int && current_class != Bool && current_class != Str && current_class != IO) {
       type_check_class(current_class);
     }
 
@@ -1138,7 +1140,7 @@ void ClassTable::install_basic_classes() {
 // semant_error is an overloaded function for reporting errors
 // during semantic analysis.  There are three versions:
 //
-//    ostream& ClassTable::semant_error()
+//    ostream& ClassTable::semant_error(env->get_class_node()->get_filename(), this)
 //
 //    ostream& ClassTable::semant_error(Class_ c)
 //       print line number and filename for `c'
