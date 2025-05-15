@@ -123,6 +123,8 @@ Symbol new__class::type_check(ClassTableP classtable, EnvironmentP env) {
   else {
     if (classtable->lookup(type_name) == nullptr) {
       classtable->semant_error() << "type doesnt exist" << endl;
+      this->set_type(Object);
+      return Object;
     } else {
       this->set_type(type_name);
       return type_name;
@@ -869,6 +871,7 @@ void ClassTable::create_environments(Symbol class_name, EnvironmentP last_enviro
   std::vector<Symbol> current_children = current_inheritance->get_children();
   Class_ current_node = current_inheritance->get_node();
   EnvironmentP current_environment = new Environment(current_node, *last_environment, this);
+  current_environment->add_features(current_node, this);
   current_inheritance->set_env(current_environment);
 
   for (long unsigned int i = 0 ; i < current_children.size() ; i++) {
@@ -930,7 +933,9 @@ void ClassTable::type_check() {
   while (!q.empty()) {
     Symbol current_class = q.back();
     q.pop_back();
-    type_check_class(current_class);
+    if (current_class != Object || current_class != Int || current_class != Bool || current_class != Str || current_class != IO) {
+      type_check_class(current_class);
+    }
 
     InheritanceNodeP node = lookup(current_class);
     if (!node) { continue; }
@@ -1073,7 +1078,7 @@ void ClassTable::install_basic_classes() {
   Class_ Int_class =
       class_(Int,
 	     Object,
-	     single_Features(attr(val, Int, no_expr())),
+	     single_Features(attr(val, prim_slot, no_expr())), // TODO: ask Gautham
 	     filename);
 
   //
@@ -1081,7 +1086,7 @@ void ClassTable::install_basic_classes() {
   //
 
   Class_ Bool_class =
-      class_(Bool, Object, single_Features(attr(val, Bool, no_expr())),filename);
+      class_(Bool, Object, single_Features(attr(val, prim_slot, no_expr())),filename);
 
   //
   // The class Str has a number of slots and operations:
@@ -1100,7 +1105,7 @@ void ClassTable::install_basic_classes() {
              append_Features(
              append_Features(
              single_Features(attr(val, Int, no_expr())),
-            single_Features(attr(str_field, Str, no_expr()))),
+            single_Features(attr(str_field, prim_slot, no_expr()))),
             single_Features(method(length, nil_Formals(), Int, no_expr()))),
             single_Features(method(concat,
 				   single_Formals(formal(arg, Str)),
