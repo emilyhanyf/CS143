@@ -89,47 +89,59 @@ static void initialize_constants(void) {
 
 Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // "name" is objects name, look up in env
+  env->add_variable(self, SELF_TYPE);
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error() << "variable doesnt exist" << endl;
+    classtable->semant_error() << "In class " << name << "variable doesnt exist" << endl;
+    this->set_type(Object);
+    return Object;
   }
-  
+  this->set_type(*object_type);
   return *object_type;
 }
 
 
 // TODO: ask about
 Symbol no_expr_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  this->set_type(No_type);
   return No_type;
 }
 
 Symbol isvoid_class::type_check(ClassTableP classtable, EnvironmentP env) {
   e1->type_check(classtable, env);
+  this->set_type(Bool);
   return Bool;
 }
 
 Symbol new__class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol type_name = this->type_name;
   Symbol current_class = env->get_class_type();
-  if (type_name == SELF_TYPE) { return SELF_TYPE; }
+  if (type_name == SELF_TYPE) { 
+    this->set_type(SELF_TYPE);
+    return SELF_TYPE; 
+  }
   else {
     if (classtable->lookup(type_name) == nullptr) {
       classtable->semant_error() << "type doesnt exist" << endl;
     } else {
+      this->set_type(type_name);
       return type_name;
     }
   }
 }
 
 Symbol string_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  this->set_type(Str);
   return Str;
 }
 
 Symbol bool_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  this->set_type(Bool);
   return Bool;
 }
 
 Symbol int_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  this->set_type(Int);
   return Int;
 }
 
@@ -138,6 +150,7 @@ Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != Bool) {
     classtable->semant_error() << "'Not' must be a bool" << endl;
   }
+  this->set_type(Bool);
   return Bool;
 }
 
@@ -182,6 +195,7 @@ Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e1_type != e2_type) {
     classtable->semant_error() << "Argument 1 and 2 are not of the same type and cannot be compared." << endl;
   }
+  this->set_type(Bool);
   return Bool;
 }
 
@@ -190,6 +204,7 @@ Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (expression_type != Int) {
     classtable->semant_error() << "can only negate int" << endl;
   }
+  this->set_type(Int);
   return Int;
 }
 
@@ -304,6 +319,7 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
   for (size_t i = 1; i < branch_expr_types.size(); i++) {
     case_expr_type = classtable->lub(case_expr_type, branch_expr_types[i], env); //TODO: error for lub? where to call this? is Object the lub?
   }
+  this->set_type(case_expr_type);
   return case_expr_type;
 }
 
@@ -324,6 +340,7 @@ Symbol loop_class::type_check(ClassTableP classtable, EnvironmentP env) {
     classtable->semant_error() << "pred not bool" << endl;
   }
   body->type_check(classtable, env);
+  this->set_type(Object);
   return Object;
 }
 
@@ -353,7 +370,7 @@ Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
   }
 
   Symbol init_type = init->type_check(classtable, env);
-  if (init_type != No_type && !classtable->is_ancestor(init_type, type_decl)) { //init_type is a child of type_decl
+  if (init_type != No_type && !classtable->is_ancestor(init_type, type_decl, env)) { //init_type is a child of type_decl
     classtable->semant_error() << "Initializer type does not match declared type" << endl;
     return Object;
   }
@@ -400,7 +417,7 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
   for(int i = actual->first(), j = formals->first(); actual->more(i); i = actual->next(i), j = formals->next(j)) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
-    if (!classtable->is_ancestor(actual_type, formal_type)) {
+    if (!classtable->is_ancestor(actual_type, formal_type, env)) {
       classtable->semant_error() << "Arguments do not match the expected parameter types for method " << name << endl;
     }
   }
@@ -437,7 +454,7 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
     return Object;
   }
   // Check if e0 class is a child of T
-  if (!classtable->is_ancestor(dispatch_class, type_name)) {
+  if (!classtable->is_ancestor(dispatch_class, type_name, env)) {
     classtable->semant_error() << "Expression type is not a child of the static dispatch type" << endl;
   }
   // Check if method exists in class
@@ -456,7 +473,7 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
   for(int i = actual->first(), j = formals->first(); actual->more(i); i = actual->next(i), j = formals->next(j)) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
-    if (!classtable->is_ancestor(actual_type, formal_type)) {
+    if (!classtable->is_ancestor(actual_type, formal_type, env)) {
       classtable->semant_error() << "Arguments do not match the expected parameter types for method " << name << endl;
     }
   }
@@ -477,11 +494,11 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
 Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error() << "variable doesnt exist" << endl;
-    return Object;  //TODO: do we need this?
+    classtable->semant_error() << "In class "<< name << " variable doesnt exist" << endl;
+    return Object;  //TODO: do we need this? // no cascading error by defining a bottom_type (global variable)
   }
   Symbol expression_type = expr->type_check(classtable, env);
-  if (!classtable->is_ancestor(expression_type, *object_type)) {
+  if (!classtable->is_ancestor(expression_type, *object_type, env)) {
     classtable->semant_error() << "expr and variable dont match" << endl;
     return Object;  //TODO: do we need this?
   }
@@ -492,7 +509,7 @@ Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
 // TODO: confirm init can be No_type
 void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
-    classtable->semant_error() << "type not defined" << endl;
+    classtable->semant_error() << "In attr_class " << name << " type not defined" << endl;
   }
   Symbol init_type = init->type_check(classtable, env); //init does not have to have an expression
   if (init_type!= No_type && type_decl != init->type_check(classtable, env)) {
@@ -502,6 +519,7 @@ void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
 void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
   env->enter_scope();
+  env->add_variable(self, SELF_TYPE);
 
   // return type is defined
   if (return_type != SELF_TYPE && classtable->lookup(return_type) == nullptr) {
@@ -543,7 +561,10 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (final_return_type == SELF_TYPE) {
     final_return_type = env->get_class_type();
   }
-  if (!classtable->is_ancestor(body_type, final_return_type)) {
+  if (body_type == SELF_TYPE) {
+    body_type = env->get_class_type();
+  }
+  if (body_type != No_type && !classtable->is_ancestor(body_type, final_return_type, env)) {
     classtable->semant_error() << "Method " << name << " has a return type " << return_type << " that does not conform to body type " << body_type << endl;
   }
   env->exit_scope();
@@ -590,21 +611,26 @@ Symbol ClassTable::lub(Symbol class1, Symbol class2, EnvironmentP env) {
 }
 
 
-bool ClassTable::is_ancestor(Symbol child, Symbol parent) {
+bool ClassTable::is_ancestor(Symbol child, Symbol parent, EnvironmentP env) {
   // traverse through child's parents
+  if (child == NULL || parent == NULL) {
+    return false;
+  }
+  if (child == SELF_TYPE) child = env->get_class_type();
+  if (parent == SELF_TYPE) parent = env->get_class_type();
+
   Symbol curr_node = child;
   while (true) {
     if (curr_node == parent) {
       return true;
     }
-
     if (curr_node == No_class) {
       return false;
     }
 
     InheritanceNodeP curr_inheritance = lookup(curr_node);
     if (curr_inheritance == nullptr) {
-      semant_error() << "type does not exist" << endl;
+      semant_error() << "When checking for inheritance, type " << curr_node << " does not exist" << endl;
       return false;
     }
 
@@ -1047,7 +1073,7 @@ void ClassTable::install_basic_classes() {
   Class_ Int_class =
       class_(Int,
 	     Object,
-	     single_Features(attr(val, prim_slot, no_expr())),
+	     single_Features(attr(val, Int, no_expr())),
 	     filename);
 
   //
@@ -1055,7 +1081,7 @@ void ClassTable::install_basic_classes() {
   //
 
   Class_ Bool_class =
-      class_(Bool, Object, single_Features(attr(val, prim_slot, no_expr())),filename);
+      class_(Bool, Object, single_Features(attr(val, Bool, no_expr())),filename);
 
   //
   // The class Str has a number of slots and operations:
@@ -1074,7 +1100,7 @@ void ClassTable::install_basic_classes() {
              append_Features(
              append_Features(
              single_Features(attr(val, Int, no_expr())),
-            single_Features(attr(str_field, prim_slot, no_expr()))),
+            single_Features(attr(str_field, Str, no_expr()))),
             single_Features(method(length, nil_Formals(), Int, no_expr()))),
             single_Features(method(concat,
 				   single_Formals(formal(arg, Str)),

@@ -71,7 +71,7 @@ public:
   void _abort() { abort = true; }
   void create_environments();
   void type_check();
-  bool is_ancestor(Symbol child, Symbol parent);
+  bool is_ancestor(Symbol child, Symbol parent, EnvironmentP env);
   Symbol lub(Symbol class1, Symbol class2, EnvironmentP env);
 };
 
