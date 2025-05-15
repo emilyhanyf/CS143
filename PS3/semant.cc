@@ -150,6 +150,7 @@ Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
+  this->set_type(Bool);
   return Bool;
 }
 
@@ -162,6 +163,7 @@ Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
+  this->set_type(Bool);
   return Bool;
 }
 
@@ -201,7 +203,7 @@ Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
-
+  this->set_type(Int);
   return Int;
 }
 
@@ -215,7 +217,7 @@ Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
-
+  this->set_type(Int);
   return Int;
 }
 
@@ -229,7 +231,7 @@ Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
-
+  this->set_type(Int);
   return Int;
 }
 
@@ -243,7 +245,7 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
   if (e2_type != Int) {
     classtable->semant_error() << "Argument 2 is not an int" << endl;
   }
-
+  this->set_type(Int);
   return Int;
 }
 
@@ -257,6 +259,7 @@ Symbol block_class::type_check(ClassTableP classtable, EnvironmentP env) {
   for(int i = body->first(); body->more(i); i = body->next(i)) {
     type = body->nth(i)->type_check(classtable, env);
   }
+  this->set_type(type);
   return type;
 }
 
@@ -299,7 +302,7 @@ Symbol typcase_class::type_check(ClassTableP classtable, EnvironmentP env) {
   // The static type of a case expression is lub(all branches)
   Symbol case_expr_type = branch_expr_types[0];
   for (size_t i = 1; i < branch_expr_types.size(); i++) {
-    case_expr_type = classtable->lub(case_expr_type, branch_expr_types[i], env);
+    case_expr_type = classtable->lub(case_expr_type, branch_expr_types[i], env); //TODO: error for lub? where to call this? is Object the lub?
   }
   return case_expr_type;
 }
@@ -482,6 +485,7 @@ Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
     classtable->semant_error() << "expr and variable dont match" << endl;
     return Object;  //TODO: do we need this?
   }
+  this->set_type(expression_type);
   return expression_type;
 }
 
@@ -497,8 +501,59 @@ void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
 }
 
 void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
+  env->enter_scope();
 
+  // return type is defined
+  if (return_type != SELF_TYPE && classtable->lookup(return_type) == nullptr) {
+    classtable->semant_error() << "Return type " << return_type << " of method " << name << " is not a valid type" << endl;
+  }
+
+  // identifiers used in the formal parameter list must be distinct
+  std::set<Symbol> formals_so_far;
+  for (int i = formals->first() ; formals->more(i) ; i = formals->next(i)) {
+    Formal curr = formals->nth(i);
+    Symbol curr_type = curr->get_formal_type();
+    Symbol curr_name = curr->get_formal_name();
+
+    // check for duplicate parameter identifiers
+    if (formals_so_far.count(curr_name) > 0) {
+      classtable->semant_error() << "There are two of the same formal parameter " << curr_name << " in method " << name << endl;
+    }
+    else {
+      formals_so_far.insert(curr_name);
+    }
+
+    // check for undefined formal parameters
+    if (curr_type != SELF_TYPE && classtable->lookup(curr_type) == nullptr) {
+      classtable->semant_error() << "Formal parameter type " << curr_type << " in method " << name << " is undefined "<< endl;
+    }
+
+    // formal parameters cannot be named "self"
+    if (curr_name == self) {
+      classtable->semant_error() << "Method " << name << " has a formal parameter named 'self' which is not allowed." << endl;
+    }
+
+    env->add_variable(curr_name, curr_type);
+  }
+
+  // type of the method body must conform to the declared return type
+  // body_type <= return_type
+  Symbol final_return_type = return_type;
+  Symbol body_type = expr->type_check(classtable, env);
+  if (final_return_type == SELF_TYPE) {
+    final_return_type = env->get_class_type();
+  }
+  if (!classtable->is_ancestor(body_type, final_return_type)) {
+    classtable->semant_error() << "Method " << name << " has a return type " << return_type << " that does not conform to body type " << body_type << endl;
+  }
+  env->exit_scope();
+
+  return;
 }
+
+// void formal_class::type_check(ClassTableP classtable, EnvironmentP env) {
+//   return;
+// }
 
 // Lub - least upper bound for two classes
 Symbol ClassTable::lub(Symbol class1, Symbol class2, EnvironmentP env) {
@@ -530,7 +585,7 @@ Symbol ClassTable::lub(Symbol class1, Symbol class2, EnvironmentP env) {
     node2 = lookup(node2_parent);
   }
 
-  semant_error() << "least upper bound does not exist" << endl;
+  // semant_error() << "least upper bound does not exist" << endl;
   return Object;
 }
 
@@ -829,11 +884,11 @@ void ClassTable::create_environments(Symbol class_name, EnvironmentP last_enviro
 
 
 void ClassTable::type_check_class(Symbol class_name) {
-  // first, type check features
   InheritanceNodeP curr_inheritance = lookup(class_name);
   Class_ curr_class = curr_inheritance->get_node();
   EnvironmentP curr_env = curr_inheritance->get_env();
   Features feature_list = curr_class->get_features();
+
   for (int i = feature_list->first() ; feature_list->more(i) ; i = feature_list->next(i)) {
     Feature curr_feature = feature_list->nth(i);
     curr_feature->type_check(this, curr_env);
@@ -841,7 +896,22 @@ void ClassTable::type_check_class(Symbol class_name) {
 }
 
 void ClassTable::type_check() {
-  // start at object and recurse down its children
+  // Start at Object
+  if(!lookup(Object)) { return; }
+
+  // Recurse down the children of Object
+  std::vector<Symbol> q = { Object };
+  while (!q.empty()) {
+    Symbol current_class = q.back();
+    q.pop_back();
+    type_check_class(current_class);
+
+    InheritanceNodeP node = lookup(current_class);
+    if (!node) { continue; }
+
+    std::vector<Symbol> children = node->get_children();
+    q.insert(q.end(), children.begin(), children.end());
+  }
 }
 
 
