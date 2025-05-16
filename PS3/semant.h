@@ -58,8 +58,10 @@ private:
   void install_new_classes(Classes classes);
   void check_inheritance(Classes classes);
   void create_environments(Symbol class_name, EnvironmentP environment);
+  void check_parents(Classes classes);
+  void check_main();
+  void abort();
   std::ostream &error_stream;
-  bool abort = false;
   void type_check_class(Symbol class_name);
 
 public:
@@ -68,7 +70,6 @@ public:
   std::ostream &semant_error();
   std::ostream &semant_error(Class_ c);
   std::ostream &semant_error(Symbol filename, tree_node *t);
-  void _abort() { abort = true; }
   void create_environments();
   void type_check();
   bool is_ancestor(Symbol child, Symbol parent, EnvironmentP env);
