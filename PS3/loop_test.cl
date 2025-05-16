@@ -1,3 +1,7 @@
+Class Main {
+    
+};
+
 Class Chicken inherits Egg {
 
 };

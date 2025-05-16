@@ -92,7 +92,7 @@ Symbol object_class::type_check(ClassTableP classtable, EnvironmentP env) {
   env->add_variable(self, SELF_TYPE);
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "In class " << name << "variable doesnt exist" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Undeclared identifier " << name << endl;
     this->set_type(Object);
     return Object;
   }
@@ -150,7 +150,7 @@ Symbol int_const_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   if (e1_type != Bool) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "'Not' must be a bool" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "'Not' cannot be applied on " << e1_type << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -159,11 +159,8 @@ Symbol comp_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << "<=" << e2_type << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -172,11 +169,8 @@ Symbol leq_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol lt_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << "<" << e2_type << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -189,13 +183,13 @@ Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
   bool comparable2 = (e2_type == Int || e2_type == Bool || e2_type == Str);
 
   if (!comparable1) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int, bool, or string" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is " << e1_type << " (not an int, bool, or string)" << endl;
   }
   if (!comparable2) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int, bool, or string" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is " << e2_type << " (not an int, bool, or string)" << endl;
   }
   if (e1_type != e2_type) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 and 2 are not of the same type and cannot be compared." << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is " << e1_type << " and argument 2 is " << e2_type << " . They are not of the same type and cannot be compared." << endl;
   }
   this->set_type(Bool);
   return Bool;
@@ -204,7 +198,7 @@ Symbol eq_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol neg_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol expression_type = e1->type_check(classtable, env);
   if (expression_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "can only negate int" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Cannot negate type " << expression_type << endl;
   }
   this->set_type(Int);
   return Int;
@@ -214,11 +208,8 @@ Symbol divide_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
 
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << " / " << e2_type << endl;
   }
   this->set_type(Int);
   return Int;
@@ -228,11 +219,8 @@ Symbol mul_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
 
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << " * " << e2_type << endl;
   }
   this->set_type(Int);
   return Int;
@@ -242,11 +230,8 @@ Symbol sub_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
 
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << " - " << e2_type << endl;
   }
   this->set_type(Int);
   return Int;
@@ -256,11 +241,8 @@ Symbol plus_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol e1_type = e1->type_check(classtable, env);
   Symbol e2_type = e2->type_check(classtable, env);
   
-  if (e1_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 1 is not an int" << endl;
-  }
-  if (e2_type != Int) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Argument 2 is not an int" << endl;
+  if (e1_type != Int || e2_type != Int) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "non-Int arguments: " << e1_type << " + " << e2_type << endl;
   }
   this->set_type(Int);
   return Int;
@@ -963,9 +945,10 @@ void Environment::add_features(Class_ curr_class, ClassTableP classtable) {
       // check if method is already in method table
       Symbol method_name = curr_feature->get_name();
       if (current_class_methods.count(method_name)) {
-        classtable->semant_error(curr_class) << "Method " << method_name << " is multiply defined in class " << curr_class->get_name() << endl;
+        classtable->semant_error(curr_class->get_filename(), curr_feature) << "Method " << method_name << " is multiply defined in class " << curr_class->get_name() << endl;
         continue;
       }
+
       current_class_methods.insert(method_name);
 
       method_class* parent_method = lookup_method(method_name);
@@ -973,21 +956,26 @@ void Environment::add_features(Class_ curr_class, ClassTableP classtable) {
 
       // check both methods have the same # of parameters, parameter types, and return types
       if (parent_method != nullptr) {
+        if (current_class_attributes.count(method_name)) {
+          classtable->semant_error(curr_class->get_filename(), curr_feature) << "Attribute " << method_name << " is multiply defined in class " << curr_class->get_name() << endl;
+          continue;
+        }
+
         if (parent_method->get_return_type() != child_method->get_return_type()) {
-          classtable->semant_error(curr_class) << "Redefinition of function has different return type" << endl;
+          classtable->semant_error(curr_class->get_filename(), curr_feature) << "Redefinition of function has different return type" << endl;
           continue;
         }
 
         Formals parent_formals = parent_method->get_formals();
         Formals child_formals = child_method->get_formals();
         if (parent_formals->len() != child_formals->len()) {
-          classtable->semant_error(curr_class) << "Redefinition of function has different number of parameters" << endl;
+          classtable->semant_error(curr_class->get_filename(), curr_feature) << "Redefinition of function has different number of parameters" << endl;
           continue;
         }
 
         for(int i = parent_formals->first(); parent_formals->more(i); i = parent_formals->next(i)) {
           if (parent_formals->nth(i)->get_formal_type() != child_formals->nth(i)->get_formal_type()) {
-            classtable->semant_error(curr_class) << "Redefinition of function has different parameter types" << endl;
+            classtable->semant_error(curr_class->get_filename(), curr_feature) << "Redefinition of function has different parameter types" << endl;
             break;
           }
         }
@@ -1001,7 +989,7 @@ void Environment::add_features(Class_ curr_class, ClassTableP classtable) {
       // Check if variable already declared
       Symbol attr_name = curr_feature->get_name();
       if (current_class_attributes.count(attr_name)) {
-        classtable->semant_error(curr_class) << "Attribute " << attr_name << " is multiply defined in class " << curr_class->get_name() << endl;
+        classtable->semant_error(curr_class->get_filename(), curr_feature) << "Attribute " << attr_name << " is multiply defined in class " << curr_class->get_name() << endl;
         continue;
       }
       current_class_attributes.insert(attr_name);
