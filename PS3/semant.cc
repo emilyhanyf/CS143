@@ -409,7 +409,7 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
   //  the dispatch and the definition of f must have the same number of arguments
   Formals formals = method->get_formals();
   if (formals->len() != actual->len()) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method has different number of arguments as dispatch" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method " << name << " called with wrong number of arguments." << endl;
     this->set_type(Object);
     return Object;
   }
@@ -419,7 +419,7 @@ Symbol dispatch_class::type_check(ClassTableP classtable, EnvironmentP env) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
     if (!classtable->is_ancestor(actual_type, formal_type, env)) {
-      classtable->semant_error(env->get_class_node()->get_filename(), this) << "In call of method " << name << ", type " << actual_type << " of parameter arg" << i + 1 << " does not conform to declared type " << formal_type << "." << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "In call of method " << name << ", type " << actual_type << " of parameter " << formals->nth(j)->get_formal_name() << " does not conform to declared type " << formal_type << "." << endl;
     }
   }
   
@@ -468,14 +468,14 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
   // Check if parameters match
   Formals formals = method->get_formals();
   if (formals->len() != actual->len()) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method has different number of arguments as dispatch" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Method " << name << " called with wrong number of arguments." << endl;
   }
   //  the static type of the ith actual parameter must conform to the declared type of the ith formal parameter
   for(int i = actual->first(), j = formals->first(); actual->more(i); i = actual->next(i), j = formals->next(j)) {
     Symbol actual_type = actual->nth(i)->type_check(classtable, env);
     Symbol formal_type = formals->nth(j)->get_formal_type();
     if (!classtable->is_ancestor(actual_type, formal_type, env)) {
-      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Arguments do not match the expected parameter types for method " << name << endl;
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "In call of method " << name << ", type " << actual_type << " of parameter " << formals->nth(j)->get_formal_name() << " does not conform to declared type " << formal_type << "." << endl;
     }
   }
   // If f has return type B and B is a class name, then the static type of the dispatch is B. 
@@ -492,10 +492,14 @@ Symbol static_dispatch_class::type_check(ClassTableP classtable, EnvironmentP en
   return final_type;
 }
 
+
+
+// STOPPED HERE
+
 Symbol assign_class::type_check(ClassTableP classtable, EnvironmentP env) {
   Symbol* object_type = env->lookup_variable(name);
   if (object_type == nullptr) {
-    classtable->semant_error(env->get_class_node()->get_filename(), this) << "In class "<< name << " variable doesnt exist" << endl;
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "Assignment to undeclared variable "<< name << "." << endl;
     return Object;  //TODO: do we need this? // no cascading error by defining a bottom_type (global variable)
   }
   Symbol expression_type = expr->type_check(classtable, env);
