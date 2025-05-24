@@ -358,6 +358,11 @@ Symbol cond_class::type_check(ClassTableP classtable, EnvironmentP env) {
 Symbol let_class::type_check(ClassTableP classtable, EnvironmentP env) {
   env->enter_scope();
   //  The type of let is the type of the body
+  if (identifier == self) {
+    classtable->semant_error(env->get_class_node()->get_filename(), this) << "'self' cannot be bound in a 'let' expression." << endl;
+    this->set_type(Object);
+    return Object;
+  }
 
   if (type_decl != SELF_TYPE && classtable->lookup(type_decl) == nullptr) {
     classtable->semant_error(env->get_class_node()->get_filename(), this) << "Class " <<  type_decl << " of let-bound identifier " << identifier << " is undefined." << endl;
@@ -513,7 +518,7 @@ void attr_class::type_check(ClassTableP classtable, EnvironmentP env) {
   }
   Symbol init_type = init->type_check(classtable, env); //init does not have to have an expression
   if (init_type == ERROR_RETURN) { return; }
-  if (init_type!= No_type && type_decl != init_type) {
+  if (init_type!= No_type && !classtable->is_ancestor(init_type, type_decl, env)) {
     classtable->semant_error(env->get_class_node()->get_filename(), this) << "Inferred type " << init_type << " of initialization of attribute " << name << " does not conform to declared type " << type_decl << "." << endl;
   }
 }
@@ -533,6 +538,11 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
     Formal curr = formals->nth(i);
     Symbol curr_type = curr->get_formal_type();
     Symbol curr_name = curr->get_formal_name();
+
+    // cannot be SELF_TYPE
+     if (curr_type == SELF_TYPE) {
+      classtable->semant_error(env->get_class_node()->get_filename(), this) << "Formal parameter " << curr_name << " cannot have type SELF_TYPE." << endl;
+    }
 
     // check for duplicate parameter identifiers
     if (formals_so_far.count(curr_name) > 0) {
@@ -557,19 +567,15 @@ void method_class::type_check(ClassTableP classtable, EnvironmentP env) {
 
   // type of the method body must conform to the declared return type
   // body_type <= return_type
-  Symbol final_return_type = return_type;
   Symbol body_type = expr->type_check(classtable, env);
-  if (final_return_type == SELF_TYPE) {
-    final_return_type = env->get_class_type();
-  }
-  if (body_type == SELF_TYPE) {
-    body_type = env->get_class_type();
-  }
-  if (body_type != No_type && !classtable->is_ancestor(body_type, final_return_type, env)) {
+  Symbol final_return_type = (return_type == SELF_TYPE) ? env->get_class_type() : return_type;
+  Symbol actual_body_type = (body_type == SELF_TYPE) ? env->get_class_type() : body_type;
+
+  if (body_type != No_type && !classtable->is_ancestor(actual_body_type, final_return_type, env)) {
     classtable->semant_error(env->get_class_node()->get_filename(), this) << "Inferred return type " << body_type << " of method " << name << " does not conform to declared return type " << return_type << "." << endl;
   }
+  
   env->exit_scope();
-
   return;
 }
 
@@ -625,10 +631,23 @@ void Environment::add_features(Class_ curr_class, ClassTableP classtable) {
     else { 
       // Check if variable already declared
       Symbol attr_name = curr_feature->get_name();
+
+      if (attr_name == self) {
+        classtable->semant_error(curr_class->get_filename(), curr_feature) << "'self' cannot be the name of an attribute." << endl;
+        continue;
+      }
+
       if (current_class_attributes.count(attr_name)) {
         classtable->semant_error(curr_class->get_filename(), curr_feature) << "Attribute " << attr_name << " is multiply defined in class." << endl;
         continue;
       }
+
+      // Cannot redefine attribute in inherited class
+      if (lookup_variable(attr_name) != nullptr) {
+        classtable->semant_error(curr_class->get_filename(), curr_feature) << "Attribute " << attr_name << " is an attribute of an inherited class." << endl;
+        continue;
+      }
+
       current_class_attributes.insert(attr_name);
 
       // Add it if it doesn't already exist
@@ -848,6 +867,12 @@ void ClassTable::install_new_classes(Classes classes) {
   for (int i = classes->first() ; classes->more(i) ; i = classes->next(i)) {
     Class_ current = classes->nth(i);
     Symbol current_name = current->get_name();
+
+    if (current_name == SELF_TYPE) {
+      semant_error(current) << "Redefinition of basic class SELF_TYPE." << endl;
+      continue;
+    }
+
     if(lookup(current_name) != nullptr) {
       // throw error if node is alr in inheritance graph
       semant_error(current) << "Class " << current_name << " was previously defined." << endl;
@@ -936,7 +961,13 @@ void ClassTable::check_inheritance(Classes classes) {
 }
 
 void ClassTable::check_main() {
-  if (lookup(Main) == nullptr) { semant_error() << "Class Main is not defined." << endl; }
+  InheritanceNodeP main_class = lookup(Main);
+  if (main_class == nullptr) { semant_error() << "Class Main is not defined." << endl; return; }
+  method_class* main_method = main_class->get_env()->lookup_method(main_meth);
+  if (main_method == nullptr) { semant_error() << "No 'main' method in class Main." << endl; return; }
+  if (main_method->get_formals()->len() != 0) {
+    semant_error(main_class->get_node()) << "'main' method in class Main should have no arguments." << endl;
+  }
 }
 
 // SEPERATE ENVIRONMENTS
