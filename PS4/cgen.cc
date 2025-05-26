@@ -920,6 +920,7 @@ void CgenClassTable::code_prototypes() {
       if (type == Int) {
         str << "int_const0";
       } else if (type == Str) {
+        // NEED TO FIX -- LOOK UP NULL STRING LABEL NAME INSTEAD OF APPLYING SET OFFSET
         str << "str_const" << nds.size() + 2;
       } else if (type == Bool) {
         str << "bool_const0";
@@ -1027,6 +1028,7 @@ void CgenClassTable::code_class_name_tab() {
   for (auto nd : nds) {
     // has to be i + 2 because we initialize 2 strings before 
     // ie: the class that is at index 0 was actually the second string created, 1st index was 3rd, and so on
+    // NEED TO FIX -- COULD PROBABLY DO MORE ELEGANTLY WITH LOOKUP
     str << WORD << "str_const" << *class_to_tag_table.lookup(nd->get_name()) + 2 << std::endl;
   }
 }

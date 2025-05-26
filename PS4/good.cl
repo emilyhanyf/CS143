@@ -20,6 +20,12 @@ Class B inherits C {
 	};
 };
 
+Class F {
+	init() : String {
+		"string"
+	};
+};
+
 Class D inherits B {
 	init(l : Int, p : Bool) : C {
            {
