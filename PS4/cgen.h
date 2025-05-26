@@ -32,6 +32,14 @@ private:
   void code_class_prototypes();
   void traverse_cgen();
   void traverse_cgen(CgenNodeP class_node);
+  void code_class_name_tab();
+  void code_objects_tab();
+  void code_max_tag();
+  void code_parent_tab();
+  void code_class_attr_tab();
+  void code_attr_tabs();
+  void code_disp_tabs();
+  int current_class_num = 0;
   
   // The following creates an inheritance graph from a list of classes. The
   // graph is implemented as  a tree of `CgenNode', and class names are placed

@@ -404,7 +404,7 @@ void StringEntry::code_def(ostream& s, int stringclasstag)
      << WORD;
 
   /***** Add dispatch information for class String ******/
-  s << std::endl;                                              // dispatch table
+  s << "String_dispTab" << std::endl;                                              // dispatch table
   s << WORD;  lensym->code_ref(s);  s << std::endl;            // string length
   emit_string_constant(s,str);                                // ascii string
   s << ALIGN;                                                 // align to word
@@ -447,7 +447,7 @@ void IntEntry::code_def(ostream &s, int intclasstag)
 
   /***** Add dispatch information for class Int ******/
 
-  s << std::endl;                                          // dispatch table
+  s << "Int_dispTab" << std::endl;                                          // dispatch table
   s << WORD << str << std::endl;                           // integer value
 }
 
@@ -490,7 +490,7 @@ void BoolConst::code_def(ostream& s, int boolclasstag)
 
   /***** Add dispatch information for class Bool ******/
 
-  s << std::endl;                                            // dispatch table
+  s << "Bool_dispTab" << std::endl;                                            // dispatch table
   s << WORD << val << std::endl;                             // value (0 or 1)
 }
 
@@ -758,12 +758,6 @@ void CgenClassTable::install_basic_classes() {
 				   no_expr()))),
 	     filename),
         Basic,this));
-
-  // add names to name -> classid table (class_to_tag_table)
-  class_to_tag_table.addid(Object, 0);
-  class_to_tag_table.addid(Int, 1);
-  class_to_tag_table.addid(String, 2);
-  class_to_tag_table.addid(Bool, 3);
 }
 
 // CgenClassTable::install_class
@@ -778,13 +772,25 @@ void CgenClassTable::install_basic_classes() {
 void CgenClassTable::install_class(CgenNodeP nd) {
   Symbol name = nd->get_name();
 
+  int* class_tag = new int;
+  *class_tag = current_class_num;
+  current_class_num++;
+  class_to_tag_table.addid(name, class_tag);
+  stringtable.add_string(name->get_string());
+
+
+  // stringtable.add_string(idtable.lookup(name));
+  
+  // add string name to Class_nameTab 
+
+
   if (probe(name)) {
     return;
   }
 
   // The class name is legal, so add it to the list of classes
   // and the symbol table.
-  nds.push_front(nd);
+  nds.push_back(nd);
   addid(name, nd);
 }
 
@@ -848,10 +854,25 @@ void CgenClassTable::code()
 
     // set everything up, DO NOT EMIT ANY CODE YET
 
+    code_class_name_tab();
+
+    code_objects_tab();
+
+    code_max_tag();
+
+    code_parent_tab();
+
+    code_class_attr_tab();
+
+    code_attr_tabs();
+
+    code_disp_tabs();
+
     //                 Add your code to emit
     //                   - prototype objects
     //                   - class_nameTab
     //                   - dispatch tables
+    //                   - 
     //
 
 
@@ -867,6 +888,79 @@ void CgenClassTable::code()
     //                   - the class methods
     //                   - etc...
 
+}
+
+void CgenClassTable::code_max_tag() {
+  str << "_max_tag" << LABEL 
+  << WORD << current_class_num - 1 << std::endl;
+}
+
+void CgenClassTable::code_class_attr_tab() {
+  str << "class_attrTabTab" << LABEL;      
+  for (auto nd : nds) {
+    const char* node_string = nd->get_name()->get_string();
+    str << WORD << node_string << "_attrTab" << std::endl;
+  }
+}
+
+void CgenClassTable::code_attr_tabs() {
+  for (auto nd : nds) {
+    const char* node_string = nd->get_name()->get_string();
+    str << node_string << "_attrTab" << LABEL;
+    Features features = nd->get_features();
+    // traverse up parents 
+    
+    for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
+      Feature feature = features->nth(i);
+      if (!feature->is_method()) {
+        // we know its an attr
+        int* attr_type_index_ptr = class_to_tag_table.lookup(feature->get_type());
+        int index;
+        // if attribute is a literal (in the case of bool, int, and str), we don't really have a type for it, so return -2
+        attr_type_index_ptr ? (index = *attr_type_index_ptr) : (index = -2);
+        str << WORD << index << std::endl;
+      }
+    }
+  }
+}
+
+void CgenClassTable::code_disp_tabs() {
+  for (auto nd : nds) {
+    const char* node_string = nd->get_name()->get_string();
+    str << node_string << "_dispTab" << LABEL;
+
+  }
+}
+
+void CgenClassTable::code_parent_tab() {
+  str << "class_parentTab" << LABEL;      
+  for (auto nd : nds) {
+    CgenNodeP parent = nd->get_parentnd();
+    int* parent_index_ptr = class_to_tag_table.lookup(parent->get_name());
+    int index;
+    // if there is no parent (in the case of Object), return -2
+    parent_index_ptr ? (index = *parent_index_ptr) : (index = -2);
+    str << WORD << index << std::endl;
+  }
+}
+
+void CgenClassTable::code_class_name_tab() {
+  // first, emit the name of the classname table:
+  str << "Class_nameTab" << LABEL;                       
+  for (auto nd : nds) {
+    // has to be i + 2 because we initialize 2 strings before 
+    // ie: the class that is at index 0 was actually the second string created, 1st index was 3rd, and so on
+    str << WORD << "str_const" << *class_to_tag_table.lookup(nd->get_name()) + 2 << std::endl;
+  }
+}
+
+void CgenClassTable::code_objects_tab() {
+  str << "class_objTab" << LABEL;
+  for (auto nd : nds) {
+    const char* node_string = nd->get_name()->get_string();
+    str << WORD << node_string << "_protObj" << std::endl;
+    str << WORD << node_string << "_init" << std::endl;
+  }
 }
 
 // recursive helper
