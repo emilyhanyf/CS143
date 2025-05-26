@@ -41,6 +41,7 @@ private:
   void code_class_attr_tab();
   void code_attr_tabs();
   void code_disp_tabs();
+  void code_prototypes();
   int current_class_num = 0;
   
   // The following creates an inheritance graph from a list of classes. The
@@ -74,6 +75,7 @@ public:
   void set_parentnd(CgenNodeP p);
   CgenNodeP get_parentnd();
   int basic() { return (basic_status == Basic); }
+  std::list<Feature> attributes; 
 };
 
 class BoolConst {

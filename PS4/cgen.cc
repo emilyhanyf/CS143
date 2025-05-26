@@ -868,6 +868,8 @@ void CgenClassTable::code()
 
     code_disp_tabs();
 
+    code_prototypes();
+
     //                 Add your code to emit
     //                   - prototype objects
     //                   - class_nameTab
@@ -903,6 +905,32 @@ void CgenClassTable::code_class_attr_tab() {
   }
 }
 
+void CgenClassTable::code_prototypes() {
+  for (auto nd : nds) {
+    Symbol node_name = nd->get_name();
+    const char* node_string = node_name->get_string();
+    str << WORD << -1 << std::endl;
+    str << node_string << "_protObj" << LABEL;
+    str << WORD << *class_to_tag_table.lookup(node_name) << std::endl;
+    str << WORD << nd->attributes.size() + 3 << std::endl;
+    str << WORD << node_string << "_dispTab" << std::endl;
+    for (auto attr : nd->attributes) {
+      Symbol type = attr->get_type();
+      str << WORD;
+      if (type == Int) {
+        str << "int_const0";
+      } else if (type == Str) {
+        str << "str_const" << nds.size() + 2;
+      } else if (type == Bool) {
+        str << "bool_const0";
+      } else {
+        str << 0;
+      }
+      str << std::endl;
+    }
+  }
+}
+
 void CgenClassTable::code_attr_tabs() {
   for (auto nd : nds) {
     CgenNodeP curr_node = nd;
@@ -928,6 +956,7 @@ void CgenClassTable::code_attr_tabs() {
           // if attribute is a literal (in the case of bool, int, and str), we don't really have a type for it, so return -2
           attr_type_index_ptr ? (index = *attr_type_index_ptr) : (index = -2);
           str << WORD << index << std::endl;
+          nd->attributes.push_back(feature);
         }
       }
     }
