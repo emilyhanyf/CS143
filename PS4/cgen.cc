@@ -905,20 +905,29 @@ void CgenClassTable::code_class_attr_tab() {
 
 void CgenClassTable::code_attr_tabs() {
   for (auto nd : nds) {
-    const char* node_string = nd->get_name()->get_string();
+    CgenNodeP curr_node = nd;
+    const char* node_string = curr_node->get_name()->get_string();
     str << node_string << "_attrTab" << LABEL;
-    Features features = nd->get_features();
-    // traverse up parents 
+    std::stack<CgenNodeP> inheritance_nodes;
+    while (curr_node->get_name() != No_class) {
+      inheritance_nodes.push(curr_node);
+      curr_node = curr_node->get_parentnd();
+    }
     
-    for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
-      Feature feature = features->nth(i);
-      if (!feature->is_method()) {
-        // we know its an attr
-        int* attr_type_index_ptr = class_to_tag_table.lookup(feature->get_type());
-        int index;
-        // if attribute is a literal (in the case of bool, int, and str), we don't really have a type for it, so return -2
-        attr_type_index_ptr ? (index = *attr_type_index_ptr) : (index = -2);
-        str << WORD << index << std::endl;
+    while (!inheritance_nodes.empty()) {
+      curr_node = inheritance_nodes.top();
+      inheritance_nodes.pop();
+      Features features = curr_node->get_features();
+      for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
+        Feature feature = features->nth(i);
+        if (!feature->is_method()) {
+          // we know its an attr
+          int* attr_type_index_ptr = class_to_tag_table.lookup(feature->get_type());
+          int index;
+          // if attribute is a literal (in the case of bool, int, and str), we don't really have a type for it, so return -2
+          attr_type_index_ptr ? (index = *attr_type_index_ptr) : (index = -2);
+          str << WORD << index << std::endl;
+        }
       }
     }
   }

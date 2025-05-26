@@ -212,6 +212,12 @@ String_attrTab:
 	.word	-2
 Main_attrTab:
 	.word	2
+Object_dispTab:
+IO_dispTab:
+Int_dispTab:
+Bool_dispTab:
+String_dispTab:
+Main_dispTab:
 	.globl	heap_start
 heap_start:
 	.word	0

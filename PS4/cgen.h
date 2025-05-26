@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <list>
+#include <stack>
 #include "cool-tree.h"
 #include "emit.h"
 #include "symtab.h"

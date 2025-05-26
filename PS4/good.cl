@@ -10,7 +10,15 @@ Class C {
 	};
 };
 
-Class B inherits C {};
+Class B inherits C {
+	init(l : Int, p : Bool) : C {
+           {
+		a <- l;
+		b <- p;
+		self;
+           }
+	};
+};
 
 Class Main {
 	main():C {
