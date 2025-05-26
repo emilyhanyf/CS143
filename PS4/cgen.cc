@@ -909,6 +909,7 @@ void CgenClassTable::code_attr_tabs() {
     const char* node_string = curr_node->get_name()->get_string();
     str << node_string << "_attrTab" << LABEL;
     std::stack<CgenNodeP> inheritance_nodes;
+    // create stack, we need to reverse later
     while (curr_node->get_name() != No_class) {
       inheritance_nodes.push(curr_node);
       curr_node = curr_node->get_parentnd();
@@ -935,9 +936,47 @@ void CgenClassTable::code_attr_tabs() {
 
 void CgenClassTable::code_disp_tabs() {
   for (auto nd : nds) {
-    const char* node_string = nd->get_name()->get_string();
+    CgenNodeP curr_node = nd;
+    const char* node_string = curr_node->get_name()->get_string();
     str << node_string << "_dispTab" << LABEL;
+    std::stack<CgenNodeP> inheritance_nodes;
+    std::stack<std::set<Symbol>> class_methods;
+    // create stack, we need to reverse later, also create stack of sets of element names to check for definition
+    while (curr_node->get_name() != No_class) {
+      Features features = curr_node->get_features();
+      std::set<Symbol> curr_classes;
+      for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
+        Feature feature = features->nth(i);
+        if (feature->is_method()) { curr_classes.insert(feature->get_name()); }
+      }
 
+      inheritance_nodes.push(curr_node);
+      class_methods.push(curr_classes);
+      curr_node = curr_node->get_parentnd();
+    }
+
+    while (!inheritance_nodes.empty()) {
+      curr_node = inheritance_nodes.top();
+      std::set<Symbol> curr_method_set = class_methods.top();
+      inheritance_nodes.pop();
+      class_methods.pop();
+      Features features = curr_node->get_features();
+      for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
+        Feature feature = features->nth(i);
+        if (feature->is_method()) {
+          // we know its a method
+          Symbol method_name = feature->get_name();
+          // if child class has same method name (after type checking we know that it must be a valid redefinition),
+          // then don't inherit method from parent
+          if (!class_methods.empty() and class_methods.top().count(method_name)) { continue; }
+
+          // otherwise add to method table
+          const char* method_string = method_name->get_string();
+          const char* class_string = curr_node->get_name()->get_string();
+          str << WORD << class_string << "." << method_string << std::endl;
+        }
+      }
+    }
   }
 }
 

@@ -20,6 +20,16 @@ Class B inherits C {
 	};
 };
 
+Class D inherits B {
+	init(l : Int, p : Bool) : C {
+           {
+		a <- l;
+		b <- p;
+		self;
+           }
+	};
+};
+
 Class Main {
 	main():C {
 	  (new C).init(1,true)

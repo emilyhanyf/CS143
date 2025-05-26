@@ -3,6 +3,7 @@
 #include <string.h>
 #include <list>
 #include <stack>
+#include <set>
 #include "cool-tree.h"
 #include "emit.h"
 #include "symtab.h"

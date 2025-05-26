@@ -213,11 +213,37 @@ String_attrTab:
 Main_attrTab:
 	.word	2
 Object_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
 IO_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
+	.word	IO.out_string
+	.word	IO.out_int
+	.word	IO.in_string
+	.word	IO.in_int
 Int_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
 Bool_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
 String_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
+	.word	String.length
+	.word	String.concat
+	.word	String.substr
 Main_dispTab:
+	.word	Object.abort
+	.word	Object.type_name
+	.word	Object.copy
+	.word	Main.main
 	.globl	heap_start
 heap_start:
 	.word	0
