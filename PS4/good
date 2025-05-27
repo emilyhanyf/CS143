@@ -211,7 +211,6 @@ bool_const1:
 	.word	Bool_dispTab
 	.word	1
 Class_nameTab:
-	.word	str_const2
 	.word	str_const3
 	.word	str_const4
 	.word	str_const5
@@ -221,6 +220,7 @@ Class_nameTab:
 	.word	str_const9
 	.word	str_const10
 	.word	str_const11
+	.word	str_const12
 class_objTab:
 	.word	Object_protObj
 	.word	Object_init
@@ -278,13 +278,16 @@ String_attrTab:
 C_attrTab:
 	.word	2
 	.word	3
+	.word	4
 B_attrTab:
 	.word	2
 	.word	3
+	.word	4
 F_attrTab:
 D_attrTab:
 	.word	2
 	.word	3
+	.word	4
 Main_attrTab:
 Object_dispTab:
 	.word	Object.abort
@@ -353,34 +356,36 @@ Int_protObj:
 	.word	2
 	.word	4
 	.word	Int_dispTab
-	.word	0
+	.word	
 	.word	-1
 Bool_protObj:
 	.word	3
 	.word	4
 	.word	Bool_dispTab
-	.word	0
+	.word	
 	.word	-1
 String_protObj:
 	.word	4
 	.word	5
 	.word	String_dispTab
-	.word	int_const0
-	.word	0
+	.word	int_const1
+	.word	
 	.word	-1
 C_protObj:
 	.word	5
-	.word	5
+	.word	6
 	.word	C_dispTab
-	.word	int_const0
+	.word	int_const1
 	.word	bool_const0
+	.word	str_const13
 	.word	-1
 B_protObj:
 	.word	6
-	.word	5
+	.word	6
 	.word	B_dispTab
-	.word	int_const0
+	.word	int_const1
 	.word	bool_const0
+	.word	str_const13
 	.word	-1
 F_protObj:
 	.word	7
@@ -389,10 +394,11 @@ F_protObj:
 	.word	-1
 D_protObj:
 	.word	8
-	.word	5
+	.word	6
 	.word	D_dispTab
-	.word	int_const0
+	.word	int_const1
 	.word	bool_const0
+	.word	str_const13
 	.word	-1
 Main_protObj:
 	.word	9

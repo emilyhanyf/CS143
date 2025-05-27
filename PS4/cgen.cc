@@ -918,14 +918,18 @@ void CgenClassTable::code_prototypes() {
       Symbol type = attr->get_type();
       str << WORD;
       if (type == Int) {
-        str << "int_const0";
+        inttable.lookup_string("0")->code_ref(str);
+        // str << "int_const0";
       } else if (type == Str) {
         // NEED TO FIX -- LOOK UP NULL STRING LABEL NAME INSTEAD OF APPLYING SET OFFSET
-        str << "str_const" << nds.size() + 2;
+        stringtable.lookup_string("")->code_ref(str);
+        // str << "str_const" << nds.size() + 2;
       } else if (type == Bool) {
-        str << "bool_const0";
+        BoolConst* temp = new BoolConst(0);
+        temp->code_ref(str);
+        // str << "bool_const0";
       } else {
-        str << 0;
+        // str << 0;
       }
       str << std::endl;
     }
@@ -1029,7 +1033,13 @@ void CgenClassTable::code_class_name_tab() {
     // has to be i + 2 because we initialize 2 strings before 
     // ie: the class that is at index 0 was actually the second string created, 1st index was 3rd, and so on
     // NEED TO FIX -- COULD PROBABLY DO MORE ELEGANTLY WITH LOOKUP
-    str << WORD << "str_const" << *class_to_tag_table.lookup(nd->get_name()) + 2 << std::endl;
+
+    const char* class_name = nd->get_name()->get_string();
+    // str << class_name << std::endl;
+    str << WORD;
+    stringtable.lookup_string(class_name)->code_ref(str);
+    str << std::endl;
+    // str << WORD << "str_const" << *class_to_tag_table.lookup(nd->get_name()) + 2 << std::endl;
   }
 }
 
