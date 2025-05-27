@@ -881,6 +881,10 @@ void CgenClassTable::code()
     if (cgen_debug) std::cerr << "coding global text" << std::endl;
     code_global_text();
 
+    // now we need to create all of the object inits 
+    // need to deal with the fuckass stacka and shit now
+    code_inits();
+
     // set up tree traversal 
 
     traverse_cgen();
@@ -890,6 +894,31 @@ void CgenClassTable::code()
     //                   - the class methods
     //                   - etc...
 
+}
+
+void CgenClassTable::code_inits() {
+  for (auto nd : nds) {
+    const char* class_string = nd->get_name()->get_string();
+    str << class_string << CLASSINIT_SUFFIX << LABEL;
+    emit_addiu("$sp", "$sp", -12, str);
+    emit_store("$fp", 3, "$sp", str);
+    emit_store("$s0", 2, "$sp", str);
+    emit_store("$ra", 1, "$sp", str);
+    emit_addiu("$fp", "$sp", 16, str);
+    emit_move("$s0", "$a0", str);
+    CgenNodeP parent = nd->get_parentnd();
+    Symbol parent_name = parent->get_name();
+    if (parent_name != No_class) {
+      const char* parent_string = parent_name->get_string();
+      str << JAL << parent_string << CLASSINIT_SUFFIX << std::endl;
+    }
+    emit_move("$a0", "$s0", str);
+    emit_load("$fp", 3, "$sp", str);
+    emit_load("$s0", 2, "$sp", str);
+    emit_load("$ra", 1, "$sp", str);
+    emit_addiu("$sp", "$sp", 12, str);
+    emit_return(str);
+  }
 }
 
 void CgenClassTable::code_max_tag() {
@@ -910,10 +939,10 @@ void CgenClassTable::code_prototypes() {
     Symbol node_name = nd->get_name();
     const char* node_string = node_name->get_string();
     str << WORD << -1 << std::endl;
-    str << node_string << "_protObj" << LABEL;
+    str << node_string << PROTOBJ_SUFFIX << LABEL;
     str << WORD << *class_to_tag_table.lookup(node_name) << std::endl;
     str << WORD << nd->attributes.size() + 3 << std::endl;
-    str << WORD << node_string << "_dispTab" << std::endl;
+    str << WORD << node_string << DISPTAB_SUFFIX << std::endl;
     for (auto attr : nd->attributes) {
       Symbol type = attr->get_type();
       str << WORD;
