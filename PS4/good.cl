@@ -1,5 +1,5 @@
 Class C {
-	a : Int;
+	a : Int <- 3;
 	b : Bool;
 	c : String;
 	init(x : Int, y : Bool) : C {
@@ -12,6 +12,8 @@ Class C {
 };
 
 Class B inherits C {
+	l : Int;
+	p : Int <- 1;
 	init(l : Int, p : Bool) : C {
            {
 		a <- l;

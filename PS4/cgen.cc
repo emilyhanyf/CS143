@@ -912,6 +912,9 @@ void CgenClassTable::code_inits() {
       const char* parent_string = parent_name->get_string();
       str << JAL << parent_string << CLASSINIT_SUFFIX << std::endl;
     }
+    
+
+
     emit_move("$a0", "$s0", str);
     emit_load("$fp", 3, "$sp", str);
     emit_load("$s0", 2, "$sp", str);
