@@ -998,12 +998,14 @@ void CgenClassTable::code_attr_tabs() {
 }
 
 void CgenClassTable::code_disp_tabs() {
+  // FIX THIS -- redefinition needs to 
+  // NEED TO STORE OFFSETS
   for (auto nd : nds) {
     CgenNodeP curr_node = nd;
     const char* node_string = curr_node->get_name()->get_string();
     str << node_string << "_dispTab" << LABEL;
-    std::stack<CgenNodeP> inheritance_nodes;
-    std::stack<std::set<Symbol>> class_methods;
+    std::vector<CgenNodeP> inheritance_nodes;
+    std::vector<std::set<Symbol>> class_methods;
     // create stack, we need to reverse later, also create stack of sets of element names to check for definition
     while (curr_node->get_name() != No_class) {
       Features features = curr_node->get_features();
@@ -1013,29 +1015,30 @@ void CgenClassTable::code_disp_tabs() {
         if (feature->is_method()) { curr_classes.insert(feature->get_name()); }
       }
 
-      inheritance_nodes.push(curr_node);
-      class_methods.push(curr_classes);
+      inheritance_nodes.insert(inheritance_nodes.begin(), curr_node);
+      class_methods.insert(class_methods.begin(), curr_classes);
       curr_node = curr_node->get_parentnd();
     }
 
-    while (!inheritance_nodes.empty()) {
-      curr_node = inheritance_nodes.top();
-      std::set<Symbol> curr_method_set = class_methods.top();
-      inheritance_nodes.pop();
-      class_methods.pop();
+    for (int j = 0 ; j < (int) inheritance_nodes.size() ; j++) {
+      curr_node = inheritance_nodes[j];
+      std::set<Symbol> curr_method_set = class_methods[j];
       Features features = curr_node->get_features();
       for (int i = features->first() ; features->more(i) ; i = features->next(i)) {
         Feature feature = features->nth(i);
         if (feature->is_method()) {
           // we know its a method
           Symbol method_name = feature->get_name();
-          // if child class has same method name (after type checking we know that it must be a valid redefinition),
+          // if parent class has same method name (after type checking we know that it must be a valid redefinition),
           // then don't inherit method from parent
-          if (!class_methods.empty() and class_methods.top().count(method_name)) { continue; }
-
+          if (j != 0 and class_methods[j - 1].count(method_name)) { continue; }
+          int k = j;
+          while (k < (int) class_methods.size() and class_methods[k].count(method_name)) { k++; }
+          k--;
+          // k is index of smallest child with this method
           // otherwise add to method table
           const char* method_string = method_name->get_string();
-          const char* class_string = curr_node->get_name()->get_string();
+          const char* class_string = inheritance_nodes[k]->get_name()->get_string();
           str << WORD << class_string << "." << method_string << std::endl;
         }
       }

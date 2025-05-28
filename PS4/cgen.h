@@ -4,6 +4,8 @@
 #include <list>
 #include <stack>
 #include <set>
+#include <vector>
+#include <map>
 #include "cool-tree.h"
 #include "emit.h"
 #include "symtab.h"

@@ -19,6 +19,9 @@ Class B inherits C {
 		self;
            }
 	};
+	bro() : Int {
+		1
+	};
 };
 
 Class F {
