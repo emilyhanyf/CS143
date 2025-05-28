@@ -25,9 +25,6 @@ class CgenClassTable : public SymbolTable<Symbol,CgenNode> {
 private:
   std::list<CgenNodeP> nds;
   std::ostream& str;
-  SymbolTable<Symbol,int> class_to_tag_table;
-  std::map<Symbol, std::vector<Feature>> attr_map;
-  std::map<Symbol, std::vector<Feature>> method_map;
 
   // The following methods emit code for constants and global declarations.
   void code_global_data();
@@ -61,6 +58,13 @@ public:
   CgenClassTable(Classes, std::ostream& str);
   void code();
   CgenNodeP root();
+  int label_index = 0;
+  int get_unique_label();
+  SymbolTable<Symbol,int> class_to_tag_table;
+  int current_stack_offset = 0;
+  SymbolTable<Symbol, int> stack_map;
+  std::map<Symbol, std::vector<Feature>> attr_map;
+  std::map<Symbol, std::vector<Feature>> method_map;
 };
 
 class CgenNode : public class__class {

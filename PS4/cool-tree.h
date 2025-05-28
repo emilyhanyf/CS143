@@ -26,6 +26,12 @@ public:
 #endif
 };
 
+class CgenClassTable;
+typedef CgenClassTable *CgenClassTableP;
+
+class CgenNode;
+typedef CgenNode *CgenNodeP;
+
 
 // define simple phylum - Class_
 typedef class Class__class *Class_;
@@ -34,7 +40,7 @@ class Class__class : public tree_node {
 public:
    tree_node *copy()		 { return copy_Class_(); }
    virtual Class_ copy_Class_() = 0;
-   virtual void code(ostream&) = 0;
+   virtual void code(ostream &s, CgenClassTableP infra, CgenNodeP current) = 0;
    virtual Features get_features() = 0;
 
 #ifdef Class__EXTRAS
@@ -50,7 +56,7 @@ class Feature_class : public tree_node {
 public:
    tree_node *copy()		 { return copy_Feature(); }
    virtual Feature copy_Feature() = 0;
-   virtual void code(ostream&) = 0;
+   virtual void code(ostream &s, CgenClassTableP infra, CgenNodeP current) = 0;
    virtual bool is_method() = 0;
    virtual Symbol get_type() = 0;
    virtual Symbol get_name() = 0;
@@ -167,7 +173,7 @@ public:
    }
    Class_ copy_Class_();
    void dump(ostream& stream, int n);
-   void code(ostream&);
+   void code(ostream &s, CgenClassTableP infra, CgenNodeP current);
    Features get_features() { return features; }
 
 #ifdef Class__SHARED_EXTRAS
@@ -195,7 +201,7 @@ public:
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
-   void code(ostream&);
+   void code(ostream &s, CgenClassTableP infra, CgenNodeP current);
    bool is_method() { return true; }
    Symbol get_type() { return return_type; }
    Symbol get_name() { return name; }
@@ -224,7 +230,7 @@ public:
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
-   void code(ostream&);
+   void code(ostream &s, CgenClassTableP infra, CgenNodeP current);
    bool is_method() { return false; }
    Symbol get_type() { return type_decl; }
    Symbol get_name() { return name; }

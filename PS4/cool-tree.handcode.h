@@ -9,6 +9,13 @@ extern int yylineno;
 
 typedef bool Boolean;
 
+class CgenClassTable;
+typedef CgenClassTable *CgenClassTableP;
+
+class CgenNode;
+typedef CgenNode *CgenNodeP;
+
+
 inline Boolean copy_Boolean(Boolean b) {return b; }
 inline void assert_Boolean(Boolean) {}
 inline void dump_Boolean(ostream& stream, int padding, Boolean b)
@@ -79,15 +86,15 @@ typedef Cases_class *Cases;
   void dump_with_types(ostream&,int);
 
 #define Case_EXTRAS							\
-  virtual void code(ostream&) = 0;					\
+  virtual void code(ostream&, CgenClassTableP infra, CgenNodeP current) = 0;					\
   virtual void dump_with_types(ostream& ,int) = 0;
 
 #define branch_EXTRAS						\
-  void code(ostream&);						\
+  void code(ostream&, CgenClassTableP infra, CgenNodeP current);						\
   void dump_with_types(ostream& ,int);
 
 #define Expression_EXTRAS					   \
-  virtual void code(ostream&) = 0;				   \
+  virtual void code(ostream&, CgenClassTableP infra, CgenNodeP current) = 0;				   \
   Symbol type;							   \
   Symbol get_type() { return type; }				   \
   Expression set_type(Symbol s) { type = s; return this; }	   \
@@ -96,7 +103,7 @@ typedef Cases_class *Cases;
   Expression_class() { type = (Symbol) NULL; }
 
 #define Expression_SHARED_EXTRAS				\
-  void code(ostream&);						\
+  void code(ostream&, CgenClassTableP infra, CgenNodeP current);						\
   void dump_with_types(ostream&,int);
 
 
