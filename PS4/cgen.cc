@@ -912,8 +912,14 @@ void CgenClassTable::code_inits() {
       const char* parent_string = parent_name->get_string();
       str << JAL << parent_string << CLASSINIT_SUFFIX << std::endl;
     }
-    
 
+    std::vector<Feature> attributes = attr_map[nd->get_name()];
+    for (int i = 0 ; i < (int) attributes.size() ; i++) {
+      // check if current attribute is initialized
+      Feature feature = attributes[i];
+      // need to code the expression
+      feature->get_expr()->code(str);
+    }
 
     emit_move("$a0", "$s0", str);
     emit_load("$fp", 3, "$sp", str);
@@ -994,6 +1000,7 @@ void CgenClassTable::code_attr_tabs() {
           attr_type_index_ptr ? (index = *attr_type_index_ptr) : (index = -2);
           str << WORD << index << std::endl;
           nd->attributes.push_back(feature);
+          attr_map[nd->get_name()].push_back(feature);
         }
       }
     }
@@ -1001,8 +1008,6 @@ void CgenClassTable::code_attr_tabs() {
 }
 
 void CgenClassTable::code_disp_tabs() {
-  // FIX THIS -- redefinition needs to 
-  // NEED TO STORE OFFSETS
   for (auto nd : nds) {
     CgenNodeP curr_node = nd;
     const char* node_string = curr_node->get_name()->get_string();
@@ -1043,6 +1048,7 @@ void CgenClassTable::code_disp_tabs() {
           const char* method_string = method_name->get_string();
           const char* class_string = inheritance_nodes[k]->get_name()->get_string();
           str << WORD << class_string << "." << method_string << std::endl;
+          method_map[nd->get_name()].push_back(feature);
         }
       }
     }

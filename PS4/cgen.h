@@ -26,6 +26,8 @@ private:
   std::list<CgenNodeP> nds;
   std::ostream& str;
   SymbolTable<Symbol,int> class_to_tag_table;
+  std::map<Symbol, std::vector<Feature>> attr_map;
+  std::map<Symbol, std::vector<Feature>> method_map;
 
   // The following methods emit code for constants and global declarations.
   void code_global_data();

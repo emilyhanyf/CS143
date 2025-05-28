@@ -1,5 +1,6 @@
 Class C {
-	a : Int <- 3;
+	f : Int;
+	a : Int <- 3 + 2 + f;
 	b : Bool;
 	c : String;
 	init(x : Int, y : Bool) : C {
