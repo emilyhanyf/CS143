@@ -319,14 +319,16 @@ static void emit_branch(int l, ostream& s)
 //
 // Push a register on the stack. The stack grows towards smaller addresses.
 //
-static void emit_push(const char *reg, ostream& str)
+static void emit_push(const char *reg, CgenClassTableP infra, ostream& str)
 {
+  infra->curr_stack_depth++;
   emit_store(reg,0,SP,str);
   emit_addiu(SP,SP,-4,str);
 }
 
-static void emit_pop(const char *reg, ostream& str)
+static void emit_pop(const char *reg, CgenClassTableP infra, ostream& str)
 {
+  infra->curr_stack_depth--;
   emit_addiu(SP,SP,4,str);
   emit_load(reg,0,SP,str);
 }
@@ -346,9 +348,9 @@ static void emit_fetch_int(const char *dest, const char *source, ostream& s)
 static void emit_store_int(const char *source, const char *dest, ostream& s)
 { emit_store(source, DEFAULT_OBJFIELDS, dest, s); }
 
-static void emit_test_collector(ostream &s)
+static void emit_test_collector(CgenClassTableP infra, ostream &s)
 {
-  emit_push(ACC, s);
+  emit_push(ACC, infra, s);
   emit_move(ACC, SP, s); // stack end
   emit_move(A1, ZERO, s); // allocate nothing
   s << JAL << gc_collect_names[cgen_Memmgr] << endl;
@@ -638,7 +640,6 @@ CgenClassTable::CgenClassTable(Classes classes, ostream& s) : str(s) {
 
   // make sure the various tables have a scope
   class_to_tag_table.enterscope();
-  stack_map.enterscope();
   enterscope();
   if (cgen_debug) std::cerr << "Building CgenClassTable" << std::endl;
   install_basic_classes();
@@ -888,13 +889,16 @@ void CgenClassTable::code()
     if (cgen_debug) std::cerr << "coding global text" << std::endl;
     code_global_text();
 
+
     // now we need to create all of the object inits 
     // need to deal with the fuckass stacka and shit now
     code_inits();
 
+    code_methods();
+
     // set up tree traversal 
 
-    traverse_cgen();
+    // traverse_cgen();
 
     //                 Add your code to emit
     //                   - object initializer
@@ -903,16 +907,29 @@ void CgenClassTable::code()
 
 }
 
+void CgenClassTable::code_methods() {
+  
+}
+
 void CgenClassTable::code_inits() {
+  // create environment for let expressions, enterscope in this env
+  SymbolTable<Symbol, int>* curr_env = new SymbolTable<Symbol, int>;
+  curr_env->enterscope();
+  envs.push(curr_env);
   for (auto nd : nds) {
     const char* class_string = nd->get_name()->get_string();
     str << class_string << CLASSINIT_SUFFIX << LABEL;
-    emit_addiu("$sp", "$sp", -12, str);
-    emit_store("$fp", 3, "$sp", str);
-    emit_store("$s0", 2, "$sp", str);
-    emit_store("$ra", 1, "$sp", str);
-    emit_addiu("$fp", "$sp", 16, str);
+
+    // save important things to stack
+    emit_push(FP, this, str);
+    emit_push("$s0", this, str);
+    emit_push("$ra", this, str);
+
+    // save self object into $s0
     emit_move("$s0", "$a0", str);
+    // next available index in THE CURRENT STACK FRAME is at index 3
+    // current_frame_offsets.push(3);
+
     CgenNodeP parent = nd->get_parentnd();
     Symbol parent_name = parent->get_name();
     if (parent_name != No_class) {
@@ -924,17 +941,27 @@ void CgenClassTable::code_inits() {
     for (int i = 0 ; i < (int) attributes.size() ; i++) {
       // check if current attribute is initialized
       Feature feature = attributes[i];
-      // need to code the expression
+
+      // need to store this a0 result into corresponding attribute spot 
+      // first attr is stored at 12(object_loc), second at 16(object_loc), so on...
+      // offset is in bytes, so 3 bytes plus 1 per i
+      int attr_offset = 3 + i;
+
+      // generate code to put output of expr into a0
+      // the following puts the result of the expression into the accumulator, a0
       feature->get_expr()->code(str, this, nd);
 
-      // we need to do stuff with each return value, should be returned in accumulator a0
+      // store a0 in this calculated offset, object pointer is stored in $s0 from before 
+      emit_store("$a0", attr_offset, "$s0", str);
     }
 
+    // restore self object into accumulator
     emit_move("$a0", "$s0", str);
-    emit_load("$fp", 3, "$sp", str);
-    emit_load("$s0", 2, "$sp", str);
-    emit_load("$ra", 1, "$sp", str);
-    emit_addiu("$sp", "$sp", 12, str);
+
+    // pop things back off of the stack
+    emit_pop("$ra", this, str);
+    emit_pop("s0", this, str);
+    emit_pop(FP, this, str);
     emit_return(str);
   }
 }
@@ -959,7 +986,7 @@ void CgenClassTable::code_prototypes() {
     str << WORD << -1 << std::endl;
     str << node_string << PROTOBJ_SUFFIX << LABEL;
     str << WORD << *class_to_tag_table.lookup(node_name) << std::endl;
-    str << WORD << nd->attributes.size() + 3 << std::endl;
+    str << WORD << nd->attributes.size() + DEFAULT_OBJFIELDS << std::endl;
     str << WORD << node_string << DISPTAB_SUFFIX << std::endl;
     for (auto attr : nd->attributes) {
       Symbol type = attr->get_type();
@@ -1198,7 +1225,7 @@ void assign_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   int index = 0;
   while (current_attributes[index]->get_name() != name) { index++; }
   // index is now at the current attribute
-  int offset = 4 * index;
+  int offset = index;
   emit_store(ACC, offset + DEFAULT_OBJFIELDS, SELF, s);
 }
 
@@ -1211,7 +1238,7 @@ void dispatch_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) 
   // so we can pop them in the correct (left to right) order
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
     actual->nth(i)->code(s, infra, current);
-    emit_push(ACC, s);
+    emit_push(ACC, infra, s);
   }
   expr->code(s, infra, current);
 
@@ -1239,7 +1266,7 @@ void dispatch_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) 
 
   std::vector<Feature> expr_methods = infra->method_map[static_type];
   int offset = 0;
-  while(expr_methods[offset]->get_name() != name) { offset++; }
+  while (expr_methods[offset]->get_name() != name) { offset++; }
 
   // index points to current method in current class
   emit_load(T1, offset, T1, s); // add memory address
@@ -1311,42 +1338,154 @@ void let_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   } else {
     init->code(s, infra, current);
   }
-  emit_push(ACC, s); // add to the environment 
+  emit_push(ACC, infra, s); // add to the environment 
   body->code(s, infra, current);
   emit_addiu(SP,SP,4,s);
 }
 
 void plus_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  // we need $s1 for this, store on stack for now
+  emit_push("$s1", infra, s);
+  // grab e1 and put it in accumulator
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  // grab int value from returned object, put it in accumulator
+  emit_load(ACC, 3, ACC, s);
+  // store this int on the stack
+  emit_push(ACC, infra, s);
+  // evaluate expression 2, int obj now in accumulator
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  // move int to $s1
+  emit_move("$s1", ACC, s);
+  // copy new int object into accumulator, now n
+  s << JAL << "Object.copy" << std::endl;
+  // load stack int value into $t1
+  emit_pop(T1, infra, s);
+  // load second int literal into $t2
+  emit_load(T2, 3, "$s1", s);
+  // add to get int literal result
+  emit_add(T1,T1,T2,s);
+  // put this int interal into copied object int field
+  emit_store(T1, 3, ACC, s);
+  // restore $s1
+  emit_pop("$s1", infra, s);
+}
+
+void sub_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  // we need $s1 for this, store on stack for now
+  emit_push("$s1", infra, s);
+  // grab e1 and put it in accumulator
+  e1->code(s, infra, current);
+  // grab int value from returned object, put it in accumulator
+  emit_load(ACC, 3, ACC, s);
+  // store this int on the stack
+  emit_push(ACC, infra, s);
+  // evaluate expression 2, int obj now in accumulator
+  e2->code(s, infra, current);
+  // move int to $s1
+  emit_move("$s1", ACC, s);
+  // copy new int object into accumulator, now n
+  s << JAL << "Object.copy" << std::endl;
+  // load stack int value into $t1
+  emit_pop(T1, infra, s);
+  // load second int literal into $t2
+  emit_load(T2, 3, "$s1", s);
+  // sub to get int literal result
+  emit_sub(T1,T1,T2,s);
+  // put this int interal into copied object int field
+  emit_store(T1, 3, ACC, s);
+  // restore $s1
+  emit_pop("$s1", infra, s);
+}
+
+void mul_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  // we need $s1 for this, store on stack for now
+  emit_push("$s1", infra, s);
+  // grab e1 and put it in accumulator
+  e1->code(s, infra, current);
+  // grab int value from returned object, put it in accumulator
+  emit_load(ACC, 3, ACC, s);
+  // store this int on the stack
+  emit_push(ACC, infra, s);
+  // evaluate expression 2, int obj now in accumulator
+  e2->code(s, infra, current);
+  // move int to $s1
+  emit_move("$s1", ACC, s);
+  // copy new int object into accumulator, now n
+  s << JAL << "Object.copy" << std::endl;
+  // load stack int value into $t1
+  emit_pop(T1, infra, s);
+  // load second int literal into $t2
+  emit_load(T2, 3, "$s1", s);
+  // multiply to get int literal result
+  emit_mul(T1,T1,T2,s);
+  // put this int interal into copied object int field
+  emit_store(T1, 3, ACC, s);
+  // restore $s1
+  emit_pop("$s1", infra, s);
+}
+
+void divide_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  // we need $s1 for this, store on stack for now
+  emit_push("$s1", infra, s);
+  // grab e1 and put it in accumulator
+  e1->code(s, infra, current);
+  // grab int value from returned object, put it in accumulator
+  emit_load(ACC, 3, ACC, s);
+  // store this int on the stack
+  emit_push(ACC, infra, s);
+  // evaluate expression 2, int obj now in accumulator
+  e2->code(s, infra, current);
+  // move int to $s1
+  emit_move("$s1", ACC, s);
+  // copy new int object into accumulator, now n
+  s << JAL << "Object.copy" << std::endl;
+  // load stack int value into $t1
+  emit_pop(T1, infra, s);
+  // load second int literal into $t2
+  emit_load(T2, 3, "$s1", s);
+  // add to get int literal result
+  emit_div(T1,T1,T2,s);
+  // put this int interal into copied object int field
+  emit_store(T1, 3, ACC, s);
+  // restore $s1
+  emit_pop("$s1", infra, s);
+}
+
+
+// obsolete (but here for reference)
+/*
+void plus_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  e1->code(s, infra, current);
+  emit_push(ACC,infra,s);
+  e2->code(s, infra, current);
+  emit_pop(T1,infra,s);
   emit_add(ACC,T1,ACC,s);
 }
 
 void sub_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
   emit_sub(ACC,T1,ACC,s);
 }
 
 void mul_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
   emit_mul(ACC,T1,ACC,s);
 }
 
 void divide_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
   emit_div(ACC,T1,ACC,s);
 }
+*/
 
 void neg_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
@@ -1357,9 +1496,9 @@ void neg_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
 
 void lt_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
 
   emit_fetch_int(T1, T1, s);
   emit_fetch_int(T2, ACC, s);
@@ -1379,9 +1518,9 @@ void lt_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
 
 void eq_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
 
   emit_fetch_int(T1, T1, s);
   emit_fetch_int(T2, ACC, s);
@@ -1401,9 +1540,9 @@ void eq_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
 
 void leq_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   e1->code(s, infra, current);
-  emit_push(ACC,s);
+  emit_push(ACC,infra,s);
   e2->code(s, infra, current);
-  emit_pop(T1,s);
+  emit_pop(T1,infra,s);
 
   emit_fetch_int(T1, T1, s);
   emit_fetch_int(T2, ACC, s);
@@ -1480,11 +1619,36 @@ void no_expr_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
 }
 
 void object_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
+  // basically for objects, we can find them in two places. Either the object is an attribute of the current class, or it lives on the stack
+  // and was created through a let expression. We know that IF it exists on the stack at all in our current body, we need to use that value
   if (name == self) {
     emit_move(ACC, SELF, s); // move SELF to ACC
+    return;
   } 
-  else {
-    int offset;
-    // TODO: add offset
+
+  // let's check our current stack now
+  SymbolTable<Symbol, int>* curr_env = infra->envs.top();
+  // if the symbol exists in the current env
+  if (curr_env->lookup(name) != nullptr) {
+    int added_index = *curr_env->lookup(name);
+    int curr_index = infra->curr_stack_depth;
+    int offset = curr_index - added_index;
+    // $t1 now holds a pointer to the value we found on the stack
+    emit_load(T1, offset, SP, s);
+    // return this value in the accumulator
+    emit_move(ACC, T1, s);
+    return;
   }
+
+  // we know then that it must be an attr, find in the attr map
+  Symbol class_name = current->get_name();
+  std::vector<Feature> class_attributes = infra->attr_map[class_name];
+  int index = 0;
+  while (class_attributes[index]->get_name() != name) { index++; }
+  // index is now in correct spot for attr
+  int offset = index + DEFAULT_OBJFIELDS;
+  // $t1 points to the corresponding attribute of our current class
+  emit_load(T1, offset, SELF, s);
+  // return this attribute in the accumulator
+  emit_move(ACC, T1, s);
 }

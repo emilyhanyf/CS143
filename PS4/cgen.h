@@ -25,6 +25,7 @@ class CgenClassTable : public SymbolTable<Symbol,CgenNode> {
 private:
   std::list<CgenNodeP> nds;
   std::ostream& str;
+  int current_class_num = 0;
 
   // The following methods emit code for constants and global declarations.
   void code_global_data();
@@ -44,7 +45,7 @@ private:
   void code_disp_tabs();
   void code_prototypes();
   void code_inits();
-  int current_class_num = 0;
+  void code_methods();
   
   // The following creates an inheritance graph from a list of classes. The
   // graph is implemented as  a tree of `CgenNode', and class names are placed
@@ -61,10 +62,11 @@ public:
   int label_index = 0;
   int get_unique_label();
   SymbolTable<Symbol,int> class_to_tag_table;
-  int current_stack_offset = 0;
-  SymbolTable<Symbol, int> stack_map;
+  std::stack<int> current_frame_offsets;
+  std::stack<SymbolTable<Symbol, int>*> envs;
   std::map<Symbol, std::vector<Feature>> attr_map;
   std::map<Symbol, std::vector<Feature>> method_map;
+  int curr_stack_depth = 0;
 };
 
 class CgenNode : public class__class {
