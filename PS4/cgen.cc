@@ -960,7 +960,7 @@ void CgenClassTable::code_inits() {
 
     // pop things back off of the stack
     emit_pop("$ra", this, str);
-    emit_pop("s0", this, str);
+    emit_pop("$s0", this, str);
     emit_pop(FP, this, str);
     emit_return(str);
   }
@@ -1324,9 +1324,9 @@ void block_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   }
 }
 
-// TODO: check if this makes sense?
+
 void let_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
-  if (init==no_expr()) {
+  if (init == no_expr()) {
     if (type_decl == Int)
       emit_load_int(ACC, inttable.lookup_string("0"), s);
     else if (type_decl == Bool)
@@ -1338,9 +1338,19 @@ void let_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
   } else {
     init->code(s, infra, current);
   }
-  emit_push(ACC, infra, s); // add to the environment 
+  // fetch current environment
+  SymbolTable<Symbol, int>* curr_env = infra->envs.top();
+  // location is current stack depth
+  int stack_location = infra->curr_stack_depth;
+  int* append = new int;
+  *append = stack_location;
+  // adding identifier to current environment, points to stack location
+  curr_env->addid(identifier, append);
+  // add to the environment 
+  emit_push(ACC, infra, s); 
   body->code(s, infra, current);
-  emit_addiu(SP,SP,4,s);
+  // remove let initialized variable from stack
+  emit_pop(T1, infra, s);
 }
 
 void plus_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
@@ -1595,7 +1605,14 @@ void bool_const_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current
 }
 
 void new__class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
-  // TODO: finish this
+  // we need to find the name of the current class
+  const char* class_string = type_name->get_string();
+  // load the prototype object into accumulator
+  s << LA << "$a0\t" << class_string << PROTOBJ_SUFFIX << std::endl;
+  // copy accumulator/prototype
+  s << JAL << "Object.copy" << std::endl;
+  // initialize object, return in accumulator
+  s << JAL << class_string << CLASSINIT_SUFFIX << std::endl;
 }
 
 void isvoid_class::code(ostream &s, CgenClassTableP infra, CgenNodeP current) {
